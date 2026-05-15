@@ -84,18 +84,17 @@ fi
 
 # ── 7. Build Micro-XRCE-DDS-Agent ───────────────────────────────────────────
 echo ">> Building Micro-XRCE-DDS-Agent (this takes a while)..."
-cd "$REPO/Micro-XRCE-DDS-Agent"
-mkdir -p build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-cmake --build . --target MicroXRCEAgent -- -j$(nproc)
+mkdir -p "$REPO/Micro-XRCE-DDS-Agent/build"
+cmake -S "$REPO/Micro-XRCE-DDS-Agent" -B "$REPO/Micro-XRCE-DDS-Agent/build" -DCMAKE_BUILD_TYPE=Release
+cmake --build "$REPO/Micro-XRCE-DDS-Agent/build" --target MicroXRCEAgent -- -j$(nproc)
 
-# ── 7. Build ROS2 workspace ──────────────────────────────────────────────────
+# ── 8. Build ROS2 workspace ──────────────────────────────────────────────────
 echo ">> Building ROS2 workspace (this takes a while)..."
 source /opt/ros/humble/setup.bash
 cd "$REPO/ros2_ws"
 colcon build
 
-# ── 8. Update .bashrc ────────────────────────────────────────────────────────
+# ── 9. Update .bashrc ────────────────────────────────────────────────────────
 echo ">> Updating .bashrc..."
 add_to_bashrc "source /opt/ros/humble/setup.bash"
 add_to_bashrc "source $REPO/ros2_ws/install/local_setup.bash"
