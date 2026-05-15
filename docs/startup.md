@@ -108,7 +108,7 @@ network:
       addresses: [192.168.1.2/24]
       dhcp4: false
 EOF
-'
+chmod 600 /etc/netplan/99-eth0-static.yaml'
 sudo netplan apply
 ```
 
