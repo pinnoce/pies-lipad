@@ -70,8 +70,9 @@
 | Micro-XRCE-DDS-Agent | ✅ Done | Serial to Pixhawk at 921600 baud, `/dev/serial0` |
 | ROS2 Humble | ✅ Done | PX4 `/fmu/` topics flowing |
 | pies_servo | ✅ Done | `/servo/angle` (Float32, 0–270°), GPIO 12, lgpio |
-| camera_ros | ✅ Done | `/camera/image_raw` at 17 FPS, 640×480, OV5647 |
+| camera_ros | ✅ Done | `/camera/image_raw` at ~16 FPS, 800×600 NV21, OV5647 |
 | Geofence | ✅ Done | Configured in QGroundControl — PX4 enforces RTL on breach natively, no custom code needed |
+| tools/capture_frame.py | ✅ Done | Saves one JPEG from `/camera/image_raw` for testing |
 | Mission sequencer | ❌ TODO | Accepts day-of waypoints, flies autonomously |
 | Computer vision | ❌ TODO | Green X detection + numbered marker detection |
 | Package recovery | ❌ TODO | Sequencer + CV + gripper combined autonomous run |
