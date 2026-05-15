@@ -50,3 +50,61 @@ ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 90.0"
 - The Pixhawk serial port is `/dev/serial0` at 921600 baud (TELEM2).
 - Servo is on GPIO 12, range 0–270°.
 - If the servo node fails with **permission denied**, the user isn't in the `dialout` group yet — run `sudo usermod -aG dialout $USER` and reboot.
+
+---
+
+## Field Connection (no WiFi infrastructure)
+
+### Option A — RPi WiFi Hotspot (recommended)
+
+Run this **once** with a keyboard/monitor plugged into the RPi (not over SSH — it will drop the connection):
+
+```bash
+sudo apt install network-manager
+sudo bash -c 'echo "network: {config: disabled}" > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg'
+sudo bash -c 'printf "network:\n  version: 2\n  renderer: NetworkManager\n" > /etc/netplan/99-nm.yaml'
+sudo netplan apply
+nmcli con add type wifi ifname wlan0 con-name pies-hotspot ssid "piesdrone" mode ap \
+  ipv4.method shared wifi-sec.key-mgmt wpa-psk wifi-sec.psk "piesdrone123" autoconnect no
+```
+
+At the field, start the hotspot:
+
+```bash
+nmcli con up pies-hotspot
+```
+
+Then SSH in from your laptop:
+
+```bash
+ssh lipad@10.42.0.1
+```
+
+Stop the hotspot (to reconnect to home WiFi):
+
+```bash
+nmcli con down pies-hotspot
+```
+
+---
+
+### Option B — Direct Ethernet Cable (fallback)
+
+Plug an Ethernet cable directly between your laptop and the RPi.
+
+On your **laptop**, set a static IP on the Ethernet interface (e.g. `192.168.1.1/24`).  
+On the **RPi**, set a static IP on `eth0`:
+
+```bash
+# Run once on the RPi (with keyboard/monitor or over existing WiFi)
+sudo nmcli con add type ethernet ifname eth0 con-name direct-eth \
+  ipv4.method manual ipv4.addresses 192.168.1.2/24 autoconnect yes
+```
+
+Then SSH in:
+
+```bash
+ssh lipad@192.168.1.2
+```
+
+**Bring both a USB keyboard + HDMI cable to the competition as backup.**
