@@ -1,6 +1,6 @@
 from setuptools import setup
 
-package_name = 'pies_servo'
+package_name = 'pies_vision'
 
 setup(
     name=package_name,
@@ -14,7 +14,7 @@ setup(
     zip_safe=True,
     entry_points={
         'console_scripts': [
-            'servo_node = pies_servo.servo_node:main',
+            'green_x_detector = pies_vision.green_x_detector:main',
         ],
     },
 )
