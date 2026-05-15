@@ -59,10 +59,9 @@
 
 ## Software Build Order
 
-1. **Geofence monitor** — mandatory before autonomous flight; watches GPS vs. boundary, triggers RTL
-2. **Mission sequencer** — accepts GPS waypoints day-of, flies them autonomously
-3. **Computer vision** — green X detection (package recovery alignment) + numbered marker detection (target localization)
-4. **Package recovery sequence** — combines sequencer + CV + gripper into one autonomous run
+1. **Mission sequencer** — accepts GPS waypoints day-of, flies them autonomously
+2. **Computer vision** — green X detection (package recovery alignment) + numbered marker detection (target localization)
+3. **Package recovery sequence** — combines sequencer + CV + gripper into one autonomous run
 
 ## Software Status
 
@@ -72,7 +71,7 @@
 | ROS2 Humble | ✅ Done | PX4 `/fmu/` topics flowing |
 | pies_servo | ✅ Done | `/servo/angle` (Float32, 0–270°), GPIO 12, lgpio |
 | camera_ros | ✅ Done | `/camera/image_raw` at 17 FPS, 640×480, OV5647 |
-| Geofence monitor | ❌ TODO | Watches GPS vs. 8-point boundary, triggers RTL |
+| Geofence | ✅ Done | Configured in QGroundControl — PX4 enforces RTL on breach natively, no custom code needed |
 | Mission sequencer | ❌ TODO | Accepts day-of waypoints, flies autonomously |
 | Computer vision | ❌ TODO | Green X detection + numbered marker detection |
 | Package recovery | ❌ TODO | Sequencer + CV + gripper combined autonomous run |
