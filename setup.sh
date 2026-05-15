@@ -42,6 +42,7 @@ sudo apt update
 sudo apt install -y \
     build-essential \
     cmake \
+    ros-dev-tools \
     python3-lgpio \
     ros-humble-camera-ros \
     ros-humble-cv-bridge \
