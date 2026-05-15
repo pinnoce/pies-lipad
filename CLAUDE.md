@@ -29,7 +29,7 @@ Microcontroller (XRCE-DDS Client)
 
 ```bash
 cd ros2_ws
-colcon build
+colcon build --symlink-install
 source install/setup.bash
 ros2 run pies_servo servo_node
 ```

@@ -92,7 +92,7 @@ cmake --build "$REPO/Micro-XRCE-DDS-Agent/build" --target MicroXRCEAgent -- -j$(
 echo ">> Building ROS2 workspace (this takes a while)..."
 source /opt/ros/humble/setup.bash
 cd "$REPO/ros2_ws"
-colcon build
+colcon build --symlink-install
 
 # ── 9. Update .bashrc ────────────────────────────────────────────────────────
 echo ">> Updating .bashrc..."
