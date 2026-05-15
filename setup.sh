@@ -49,6 +49,10 @@ sudo apt install -y \
     v4l-utils \
     libcamera-tools
 
+# dialout group covers /dev/gpiochip0 (lgpio) and /dev/ttyAMA0 (serial)
+echo ">> Adding $USER to dialout group (GPIO + serial access)..."
+sudo usermod -aG dialout "$USER"
+
 # ── 3. Python dependencies ───────────────────────────────────────────────────
 echo ">> Installing Python dependencies..."
 pip install --user "numpy<2" "setuptools==59.6.0" "empy==3.3.4" pyros-genmsg
@@ -104,7 +108,9 @@ add_to_bashrc "source $REPO/ros2_ws/install/local_setup.bash"
 echo ""
 echo "========================================"
 echo "  Setup complete!"
-echo "  Run: source ~/.bashrc"
+echo "  IMPORTANT: reboot (or log out/in) before first use so"
+echo "  the dialout group membership takes effect."
+echo "  Run after reboot: source ~/.bashrc"
 echo ""
 echo "  To start the system (see docs/startup.md for details):"
 echo "    sudo $REPO/Micro-XRCE-DDS-Agent/build/MicroXRCEAgent serial --dev /dev/serial0 -b 921600"

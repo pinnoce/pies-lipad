@@ -49,3 +49,4 @@ ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 90.0"
 - The agent must be running before PX4 topics appear in `ros2 topic list`.
 - The Pixhawk serial port is `/dev/serial0` at 921600 baud (TELEM2).
 - Servo is on GPIO 12, range 0–270°.
+- If the servo node fails with **permission denied**, the user isn't in the `dialout` group yet — run `sudo usermod -aG dialout $USER` and reboot.
