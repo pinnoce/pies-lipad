@@ -15,6 +15,7 @@ setup(
     entry_points={
         'console_scripts': [
             'green_x_detector = pies_vision.green_x_detector:main',
+            'red_bullseye_detector = pies_vision.red_bullseye_detector:main',
         ],
     },
 )
