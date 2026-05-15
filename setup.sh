@@ -17,7 +17,7 @@ echo "========================================"
 echo ""
 
 # ── 1. ROS2 Humble ──────────────────────────────────────────────────────────
-if ! command -v ros2 &>/dev/null; then
+if [ ! -d "/opt/ros/humble" ]; then
     echo ">> Installing ROS2 Humble..."
     sudo apt update && sudo apt install -y locales
     sudo locale-gen en_US en_US.UTF-8
