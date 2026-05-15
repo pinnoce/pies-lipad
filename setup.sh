@@ -40,6 +40,8 @@ fi
 echo ">> Installing system packages..."
 sudo apt update
 sudo apt install -y \
+    build-essential \
+    cmake \
     python3-lgpio \
     ros-humble-camera-ros \
     ros-humble-cv-bridge \

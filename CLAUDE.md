@@ -64,7 +64,7 @@ colcon test-result --verbose
 
 ### Build Commands
 
-The project uses a superbuild CMake pattern that downloads and compiles all dependencies (Fast-CDR, Fast-DDS, foonathan_memory, spdlog, Micro XRCE-DDS Client) as ExternalProjects into `build/temp_install/`. A pre-built `build/` directory is present in the repo.
+The project uses a superbuild CMake pattern that downloads and compiles all dependencies (Fast-CDR, Fast-DDS, foonathan_memory, spdlog, Micro XRCE-DDS Client) as ExternalProjects into `build/temp_install/`. The source is cloned by `setup.sh`; `build/` is gitignored.
 
 **First-time build:**
 ```bash
