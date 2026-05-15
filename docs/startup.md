@@ -55,7 +55,7 @@ ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 90.0"
 
 ## Field Connection (no WiFi infrastructure)
 
-### Option A — RPi WiFi Hotspot (recommended)
+### Option A — RPi WiFi Hotspot
 
 Run this **once** with a keyboard/monitor plugged into the RPi (not over SSH — it will drop the connection):
 
@@ -90,18 +90,23 @@ nmcli con down pies-hotspot
 
 ### Option B — Direct Ethernet Cable (fallback)
 
-Plug an Ethernet cable directly between your laptop and the RPi.
+Plug an Ethernet cable directly between your laptop and the RPi. Because there's no router, both ends need a manually assigned IP address so they can find each other.
 
-On your **laptop**, set a static IP on the Ethernet interface (e.g. `192.168.1.1/24`).  
-On the **RPi**, set a static IP on `eth0`:
+**On your laptop** — set a static IP on the Ethernet port:
+
+- **macOS:** System Settings → Network → Ethernet → Details → TCP/IP → Configure IPv4: Manually → IP: `192.168.1.1`, Subnet: `255.255.255.0`
+- **Windows:** Settings → Network → Ethernet → Edit → Manual → IPv4 on → IP: `192.168.1.1`, Subnet: `255.255.255.0`
+
+**On the RPi** — run this once (over existing WiFi or with keyboard/monitor):
 
 ```bash
-# Run once on the RPi (with keyboard/monitor or over existing WiFi)
 sudo nmcli con add type ethernet ifname eth0 con-name direct-eth \
   ipv4.method manual ipv4.addresses 192.168.1.2/24 autoconnect yes
 ```
 
-Then SSH in:
+This tells the RPi: "whenever something is plugged into the Ethernet port, use IP `192.168.1.2`." Your laptop is `192.168.1.1`, RPi is `192.168.1.2` — they can now talk directly.
+
+Then SSH in from your laptop:
 
 ```bash
 ssh lipad@192.168.1.2
