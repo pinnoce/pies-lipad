@@ -100,8 +100,16 @@ Plug an Ethernet cable directly between your laptop and the RPi. Because there's
 **On the RPi** — run this once (over existing WiFi or with keyboard/monitor):
 
 ```bash
-sudo nmcli con add type ethernet ifname eth0 con-name direct-eth \
-  ipv4.method manual ipv4.addresses 192.168.1.2/24 autoconnect yes
+sudo bash -c 'cat > /etc/netplan/99-eth0-static.yaml << EOF
+network:
+  version: 2
+  ethernets:
+    eth0:
+      addresses: [192.168.1.2/24]
+      dhcp4: false
+EOF
+'
+sudo netplan apply
 ```
 
 This tells the RPi: "whenever something is plugged into the Ethernet port, use IP `192.168.1.2`." Your laptop is `192.168.1.1`, RPi is `192.168.1.2` — they can now talk directly.
