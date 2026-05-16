@@ -30,6 +30,89 @@ ros2 run pies_servo servo_node
 ros2 run camera_ros camera_node
 ```
 
+## 5. Pre-flight calibration (do once after mounting, not every boot)
+
+### 5a. Servo angles
+Power the servo on the bench and confirm the grip/release angles are correct:
+```bash
+ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 30.0"   # should CLOSE gripper
+ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 240.0"  # should OPEN  gripper
+```
+Edit `GRAB_ANGLE` / `RELEASE_ANGLE` in `mission_config.py` if needed.
+
+### 5b. Camera offset
+Hover above a visible coloured object in Position mode. Read `offset_x` / `offset_y` from
+the `bucket_detector` logs. Paste those values into `mission_config.py`:
+```
+CAM_OFFSET_X_PX = <value>
+CAM_OFFSET_Y_PX = <value>
+```
+
+### 5c. Gain sign calibration
+Hover in Offboard mode with the bucket visible below, then:
+```bash
+ros2 run pies_mission calibrate_gains
+```
+Follow the prompts (two nudges: forward then right). Writes `KP_X` / `KP_Y` signs to
+`mission_config.py` automatically. Expected result with `CAM_ROT_DEG = 0`: KP_X ≈ −0.004, KP_Y ≈ +0.004.
+
+---
+
+## 6. Run the Package Recovery mission
+
+**First, set the GPS coords** (day-of — get from QGroundControl, right-click → *Copy coordinates*):
+
+```bash
+nano ~/pies-lipad/ros2_ws/src/pies_mission/pies_mission/mission_config.py
+```
+
+Set `PICKUP_LAT`, `PICKUP_LON`, `DROP_LAT`, `DROP_LON`. Save and close. No rebuild needed.
+
+---
+
+### Option A — Fully autonomous
+
+Launch everything (servo + camera + bucket detector + autonomous mission):
+
+```bash
+ros2 launch pies_mission autonomous.launch.py
+```
+
+Place the drone at the takeoff point, then trigger the mission:
+
+```bash
+ros2 topic pub --once /mission/go std_msgs/msg/Empty "{}"
+```
+
+The drone arms, takes off, flies to the pickup GPS coords, centres visually, grabs, flies to the
+drop zone, releases, and returns home — all autonomously. Watch `ros2 topic echo /mission/status`
+for state updates: `ARMING → TAKEOFF → FLY_PICKUP → VISUAL → CLIMB → FLY_DROP → DROP → RTL → DONE`.
+
+> To abort at any time: flip RC failsafe or take manual control. To re-open the gripper before
+> an unplanned landing: `ros2 topic pub --once /gripper/open std_msgs/msg/Empty "{}"`
+
+---
+
+### Option B — Manual assist (fly to bucket, then hand off)
+
+Launch servo + camera + bucket detector + visual centering node only:
+
+```bash
+ros2 launch pies_mission mission.launch.py
+```
+
+**In QGroundControl:**
+1. Arm the drone
+2. Take off and fly toward the bucket area manually
+3. Switch flight mode to **Offboard** — the centering node takes over horizontal position
+4. Watch logs: `SEARCHING → CENTERING → CENTERED → GRABBED`
+5. After grab, switch back to **Position** or **Mission** mode for the return flight
+
+> The gripper fires automatically. After `GRABBED` the node sends zero velocity (hover).
+> Switch out of Offboard as soon as you see `GRABBED` in the logs.
+
+---
+
 ## Verify everything is working
 
 ```bash

@@ -8,17 +8,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Two major components:
 
-1. **Micro-XRCE-DDS-Agent** — a C++11 DDS-XRCE broker (eProsima) that bridges a microcontroller running Micro XRCE-DDS Client to the full ROS2 DDS network.
-2. **ros2_ws** — a ROS2 colcon workspace containing `pies_servo` (servo/gripper control) and `camera_ros` (OV5647 CSI camera, 640×480 at 17 FPS).
+1. **Micro-XRCE-DDS-Agent** — a C++11 DDS-XRCE broker (eProsima) that bridges the Pixhawk (running Micro XRCE-DDS Client) to the ROS2 DDS network.
+2. **ros2_ws** — a ROS2 colcon workspace with four packages:
+   - `pies_servo` — servo/gripper control via lgpio PWM on GPIO 12
+   - `camera_ros` — OV5647 CSI camera, 800×600 at ~17 FPS
+   - `pies_vision` — computer vision nodes (bucket_detector, green_x_detector, etc.)
+   - `pies_mission` — full autonomous mission stack (see below)
 
-The full data path is:
+The full data path for autonomous package recovery:
 ```
-Microcontroller (XRCE-DDS Client)
-    → MicroXRCEAgent (UDP/serial bridge)
+Pixhawk (XRCE-DDS Client, TELEM2 921600 baud)
+    → MicroXRCEAgent (serial bridge, /dev/serial0)
         → ROS2 DDS network
-            → pies_servo node (/servo/angle)
-                → lgpio PWM on GPIO 12
-                    → Servo motor
+            ├── camera_ros       → /camera/image_raw
+            │       └── bucket_detector (/vision/bucket JSON)
+            │               └── autonomous_mission or visual_centering
+            │                       → /fmu/in/trajectory_setpoint  (OFFBOARD velocity)
+            │                       → /fmu/in/offboard_control_mode
+            ├── pies_servo       ← /servo/angle (Float32, degrees)
+            └── /fmu/out/vehicle_local_position  (NED pos + heading)
 ```
 
 ---
@@ -57,6 +65,75 @@ colcon test-result --verbose
 - **`user_main.py`** — the intended customisation point. Instantiates `ServoDriver` on GPIO 12, moves the servo on each command, and auto-releases the PWM signal 0.5 s later (prevents jitter while holding position).
 
 `user_main.py` is the file to edit when changing servo behaviour (pin, timing, motion profiles). `servo_driver.py` is pure hardware abstraction.
+
+---
+
+## ROS2 Workspace (pies_mission)
+
+The main mission package. All parameters live in one file — edit before each flight, no rebuild needed (symlink-install).
+
+### Key files
+
+| File | Purpose |
+|------|---------|
+| `pies_mission/mission_config.py` | Single source of truth for all parameters |
+| `pies_mission/autonomous_mission.py` | Full state machine: IDLE→ARMING→TAKEOFF→FLY_PICKUP→VISUAL→CLIMB→FLY_DROP→DROP→RTL→DONE |
+| `pies_mission/visual_centering.py` | Standalone OFFBOARD centering node (manual takeoff, then hand off) |
+| `pies_mission/calibrate_gains.py` | Sets KP_X/KP_Y signs via live nudge test — run once after mounting |
+| `launch/autonomous.launch.py` | Launches full autonomous stack |
+| `launch/mission.launch.py` | Launches visual-centering-only stack |
+| `tools/sim_mission.py` | Simulates the full mission state machine without hardware |
+| `tools/sim_calibrate.py` | Validates calibration sign logic for all camera mount angles |
+
+### Run autonomous mission
+
+```bash
+ros2 launch pies_mission autonomous.launch.py
+# then trigger:
+ros2 topic pub --once /mission/go std_msgs/msg/Empty "{}"
+```
+
+### Run visual centering only (manual-assist mode)
+
+```bash
+ros2 launch pies_mission mission.launch.py
+# arm + fly to bucket manually, then switch to Offboard mode in QGC
+```
+
+### Calibrate gain signs (once after mounting camera)
+
+```bash
+ros2 run pies_mission calibrate_gains
+# hover in Offboard with bucket visible; follow prompts; writes KP_X/KP_Y to mission_config.py
+```
+
+### Key parameters (mission_config.py)
+
+| Parameter | Default | Notes |
+|-----------|---------|-------|
+| `CAM_ROT_DEG` | `0` | 0 = nose→image top; use 90/180/270 for other mounts |
+| `KP_X`, `KP_Y` | `0.004` | Set by `calibrate_gains`; signs depend on mount |
+| `GRAB_ALT` | `0.2` m | AGL altitude where gripper fires |
+| `DROP_ALT` | `0.2` m | AGL altitude for bucket release |
+| `CRUISE_ALT` | `5.0` m | Navigation altitude |
+| `BLIND_GRAB_S` | `4.0` s | Grab window after camera loses bucket overhead |
+| `PICKUP_LAT/LON` | `0.0` | **Set day-of** from QGroundControl |
+| `DROP_LAT/LON` | `0.0` | **Set day-of** from QGroundControl |
+
+### Camera / control law
+
+Pixel error is rotated to drone body-frame axes with `phi = 90° − CAM_ROT_DEG`, then velocity
+is rotated to NED using the live heading from `VehicleLocalPosition`. This means the controller
+works regardless of which direction the drone is facing.
+
+### Simulation
+
+```bash
+python3 tools/sim_mission.py           # full mission, default waypoints
+python3 tools/sim_calibrate.py         # calibration sign check for all 8 mount angles
+```
+
+Expected: `sim_calibrate` shows 0°/90°/180°/270° converging in ~2.7 s; `sim_mission` completes in ~66 s.
 
 ---
 

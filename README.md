@@ -33,11 +33,11 @@ See [docs/startup.md](docs/startup.md) for the full sequence. Short version:
 # Terminal 1 — bridge Pixhawk to ROS2
 sudo ~/pies-lipad/Micro-XRCE-DDS-Agent/build/MicroXRCEAgent serial --dev /dev/serial0 -b 921600
 
-# Terminal 2 — servo/gripper
-ros2 run pies_servo servo_node
+# Terminal 2 — full autonomous mission (edit mission_config.py first)
+ros2 launch pies_mission autonomous.launch.py
 
-# Terminal 3 — camera
-ros2 run camera_ros camera_node
+# Trigger the mission when ready
+ros2 topic pub --once /mission/go std_msgs/msg/Empty "{}"
 ```
 
 ## What's Working
@@ -49,25 +49,37 @@ ros2 run camera_ros camera_node
 | Servo/gripper (`/servo/angle`, 0–270°) | ✅ |
 | Camera (`/camera/image_raw`, ~16 FPS, 800×600) | ✅ |
 | Geofence (QGroundControl + PX4 native RTL) | ✅ |
-| Mission sequencer | ❌ |
-| Computer vision (green X + marker detection) | ❌ |
-| Package recovery sequence | ❌ |
+| Computer vision (bucket, green X, markers) | ✅ |
+| Package recovery — visual centering + grab | ✅ |
+| Package recovery — full autonomous mission | ✅ |
 
 ## Repo Structure
 
 ```
-setup.sh                  # One-shot bootstrap for a fresh RPi
+setup.sh                        # One-shot bootstrap for a fresh RPi
 docs/
-  competition.md          # C-UASC rules, missions, scoring, build order
-  startup.md              # Daily startup sequence
+  competition.md                # C-UASC rules, missions, scoring
+  startup.md                    # Daily startup + calibration sequence
 ros2_ws/src/
-  pies_servo/             # Servo/gripper ROS2 package
+  pies_servo/                   # Servo/gripper ROS2 package
     pies_servo/
-      user_main.py        # ← edit this to change servo behaviour
-      servo_driver.py     # lgpio hardware abstraction (don't edit)
-      servo_node.py       # ROS2 boilerplate (don't edit)
+      user_main.py              # ← edit to change servo behaviour
+      servo_driver.py           # lgpio hardware abstraction
+      servo_node.py             # ROS2 boilerplate
+  pies_vision/                  # Computer vision nodes
+  pies_mission/                 # Autonomous mission stack
+    pies_mission/
+      mission_config.py         # ← all flight parameters (edit before each flight)
+      autonomous_mission.py     # Full state machine: takeoff → pickup → drop → RTL
+      visual_centering.py       # Standalone OFFBOARD centering node
+      calibrate_gains.py        # Sets KP_X/KP_Y signs via live nudge test
+    launch/
+      autonomous.launch.py      # Full autonomous stack
+      mission.launch.py         # Visual-centering-only stack
 tools/
-  capture_frame.py        # Save one camera frame to captured_frame.jpg
+  sim_mission.py                # Simulate full mission without hardware
+  sim_calibrate.py              # Validate calibration for all camera mount angles
+  capture_frame.py              # Save one camera frame to captured_frame.jpg
 ```
 
 Third-party repos (`Micro-XRCE-DDS-Agent`, `px4_msgs`, `px4_ros_com`) are gitignored and cloned automatically by `setup.sh`.
@@ -75,14 +87,21 @@ Third-party repos (`Micro-XRCE-DDS-Agent`, `px4_msgs`, `px4_ros_com`) are gitign
 ## Key Commands
 
 ```bash
+# Run full autonomous mission
+ros2 launch pies_mission autonomous.launch.py
+ros2 topic pub --once /mission/go std_msgs/msg/Empty "{}"
+
+# Calibrate gain signs after mounting camera (run once)
+ros2 run pies_mission calibrate_gains
+
+# Simulate mission before flying
+python3 tools/sim_mission.py
+
 # Test servo (degrees, 0–270)
 ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 90.0"
 
 # Check camera framerate
 ros2 topic hz /camera/image_raw
-
-# Capture a test image (saves to captured_frame.jpg)
-python3 tools/capture_frame.py
 
 # Rebuild after code changes
 cd ros2_ws && colcon build --symlink-install

@@ -73,6 +73,9 @@
 | camera_ros | ✅ Done | `/camera/image_raw` at ~16 FPS, 800×600 NV21, OV5647 |
 | Geofence | ✅ Done | Configured in QGroundControl — PX4 enforces RTL on breach natively, no custom code needed |
 | tools/capture_frame.py | ✅ Done | Saves one JPEG from `/camera/image_raw` for testing |
-| Mission sequencer | ❌ TODO | Accepts day-of waypoints, flies autonomously |
-| Computer vision | ❌ TODO | Green X detection + numbered marker detection |
-| Package recovery | ❌ TODO | Sequencer + CV + gripper combined autonomous run |
+| gripper_trigger | ✅ Done | GPS-proximity servo trigger for pickup + drop; coords set day-of via --ros-args |
+| green_x_detector | ✅ Done | HSV detection, publishes `geometry_msgs/Point` on `/vision/green_x` |
+| red_bullseye_detector | ✅ Done | Dual-band HSV + circularity, publishes `geometry_msgs/Point` on `/vision/red_bullseye` |
+| marker_detector | ✅ Done | Canny+warp+pattern check, publishes JSON on `/vision/markers`, reads numbers via pytesseract |
+| bucket_detector | ✅ Done | HSV colour detection for blue/orange/green bucket, publishes JSON on `/vision/bucket` |
+| Package recovery | ✅ Done | `autonomous_mission` + `visual_centering` + `calibrate_gains`; all verified in sim |

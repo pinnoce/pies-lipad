@@ -11,8 +11,11 @@ import cv2
 RED_LOW1,  RED_HIGH1  = (  0, 80, 80), ( 10, 255, 255)  # lower red band
 RED_LOW2,  RED_HIGH2  = (170, 80, 80), (180, 255, 255)  # upper red band
 
-# Minimum blob area (px²) — filters small red objects at high altitude
-MIN_AREA_PX = 300
+# Minimum blob area (px²) — filters small red objects and random red patches.
+# At competition altitude (10–30 m), the 5 m bullseye spans 50–200 px radius
+# (area ≥ ~7 800 px²). 2000 rejects isolated red speckles while still finding
+# a distant target; raise it further if false positives remain at the field.
+MIN_AREA_PX = 2000
 
 # Circularity threshold (0–1, 1 = perfect circle)
 # Bullseye is a circle so this filters out non-circular red patches
@@ -49,7 +52,7 @@ class RedBullseyeDetector(Node):
 
         pt = Point()  # x/y = pixel offset from frame centre, z = area (0 = not detected)
         cx, cy = msg.width // 2, msg.height // 2
-        best_area = 0
+        best_circ = 0.0
 
         for c in contours:
             area = cv2.contourArea(c)
@@ -62,9 +65,10 @@ class RedBullseyeDetector(Node):
             circularity = 4 * np.pi * area / (perimeter ** 2)
             if circularity < MIN_CIRCULARITY:
                 continue
-            # Keep the largest circular blob
-            if area > best_area:
-                best_area = area
+            # Keep the most circular blob (not largest): circularity discriminates
+            # real bullseyes (0.8+) from background rust/noise blobs (0.5–0.6)
+            if circularity > best_circ:
+                best_circ = circularity
                 M = cv2.moments(c)
                 if M['m00'] > 0:
                     px = int(M['m10'] / M['m00'])

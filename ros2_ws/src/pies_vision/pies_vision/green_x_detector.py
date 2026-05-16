@@ -14,6 +14,10 @@ GREEN_HIGH = (85, 255, 255)   # H, S, V upper bound
 # Ignore detections smaller than this (filters grass/noise at altitude)
 MIN_AREA_PX = 300
 
+# Ignore detections larger than this fraction of total frame area (filters
+# cases where the whole background is green, e.g. grassy field)
+MAX_AREA_FRAC = 0.30
+
 # ─────────────────────────────────────────────────────────────────────────────
 
 class GreenXDetector(Node):
@@ -44,10 +48,11 @@ class GreenXDetector(Node):
         pt = Point()  # x/y = pixel offset from frame centre, z = area (0 = not detected)
         cx, cy = msg.width // 2, msg.height // 2
 
+        max_area = msg.width * msg.height * MAX_AREA_FRAC
         if contours:
             largest = max(contours, key=cv2.contourArea)
             area = cv2.contourArea(largest)
-            if area >= MIN_AREA_PX:
+            if MIN_AREA_PX <= area <= max_area:
                 M = cv2.moments(largest)
                 if M['m00'] > 0:
                     px = int(M['m10'] / M['m00'])
