@@ -11,7 +11,7 @@ Built on a Raspberry Pi 4 companion computer running Ubuntu 22.04, connected to 
 | Flight controller | Pixhawk — TELEM2 serial at 921600 baud |
 | Companion computer | Raspberry Pi 4, Ubuntu 22.04 |
 | Camera | Sunny P5V04A (OV5647, 5MP CSI) |
-| Gripper | Rack-and-pinion servo, GPIO 12, 270° range |
+| Gripper | Rack-and-pinion servo, GPIO 12, 270° range — 0°=CCW=close, 270°=CW=open |
 
 ## Fresh Setup (new SD card)
 
@@ -52,6 +52,7 @@ ros2 topic pub --once /mission/go std_msgs/msg/Empty "{}"
 | Computer vision (bucket, green X, markers) | ✅ |
 | Package recovery — visual centering + grab | ✅ |
 | Package recovery — full autonomous mission | ✅ |
+| QGC state monitoring via SiK telemetry | ✅ |
 
 ## Repo Structure
 
@@ -79,6 +80,7 @@ ros2_ws/src/
 tools/
   sim_mission.py                # Simulate full mission without hardware
   sim_calibrate.py              # Validate calibration for all camera mount angles
+  test_statustext.py            # Preview mission STATUSTEXT in QGC via pymavlink UDP
   capture_frame.py              # Save one camera frame to captured_frame.jpg
 ```
 
@@ -96,6 +98,9 @@ ros2 run pies_mission calibrate_gains
 
 # Simulate mission before flying
 python3 tools/sim_mission.py
+
+# Preview QGC mission messages via SiK telemetry (no hardware needed)
+python3 tools/test_statustext.py
 
 # Test servo (degrees, 0–270)
 ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 90.0"

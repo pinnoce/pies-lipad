@@ -84,6 +84,7 @@ The main mission package. All parameters live in one file — edit before each f
 | `launch/mission.launch.py` | Launches visual-centering-only stack |
 | `tools/sim_mission.py` | Simulates the full mission state machine without hardware |
 | `tools/sim_calibrate.py` | Validates calibration sign logic for all camera mount angles |
+| `tools/test_statustext.py` | pymavlink UDP server that replays mission STATUSTEXT in QGC — use to preview Messages panel before flying |
 
 ### Run autonomous mission
 
@@ -126,6 +127,27 @@ Pixel error is rotated to drone body-frame axes with `phi = 90° − CAM_ROT_DEG
 is rotated to NED using the live heading from `VehicleLocalPosition`. This means the controller
 works regardless of which direction the drone is facing.
 
+### QGC monitoring via SiK telemetry
+
+`autonomous_mission.py` publishes each state transition as a MAVLink STATUSTEXT via
+`/fmu/in/log_message` (`px4_msgs/LogMessage`). Messages appear in QGC's Messages panel over
+the SiK 915 MHz radio at full range — no SSH needed during flight.
+
+`LogMessage.text` is a fixed `uint8[128]` array — always pad to exactly 128 bytes.
+
+To preview the full sequence in QGC without hardware:
+```bash
+python3 tools/test_statustext.py
+# QGC: Application Settings → Comm Links → Add → UDP, port 14550, RPi IP
+```
+
+### Servo direction
+
+Confirmed 2026-05-16: **0° → CCW → closes gripper; 270° → CW → opens gripper.**
+`GRAB_ANGLE = 30` and `RELEASE_ANGLE = 240` are in the correct directions.
+Final values need tuning once the rack-and-pinion mechanism is physically attached — sweep in
+10° steps from each limit and set `GRAB_ANGLE` = closed stop + 10°, `RELEASE_ANGLE` = open stop − 10°.
+
 ### Simulation
 
 ```bash
@@ -133,7 +155,7 @@ python3 tools/sim_mission.py           # full mission, default waypoints
 python3 tools/sim_calibrate.py         # calibration sign check for all 8 mount angles
 ```
 
-Expected: `sim_calibrate` shows 0°/90°/180°/270° converging in ~2.7 s; `sim_mission` completes in ~66 s.
+Expected: `sim_calibrate` shows 0°/90°/180°/270° converging in ~2.7 s; diagonal mounts diverge with a warning. `sim_mission` completes in ~66 s.
 
 ---
 
