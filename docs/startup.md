@@ -203,12 +203,7 @@ nmcli con down pies-hotspot
 
 Plug an Ethernet cable directly between your laptop and the RPi. Because there's no router, both ends need a manually assigned IP address so they can find each other.
 
-**On your laptop** — set a static IP on the Ethernet port:
-
-- **macOS:** System Settings → Network → Ethernet → Details → TCP/IP → Configure IPv4: Manually → IP: `192.168.1.1`, Subnet: `255.255.255.0`
-- **Windows 10:** When you plug in the cable, Windows will show "Unidentified network / No internet" — that's expected (no DHCP router). Then:
-  Settings → Network & Internet → Change adapter options → right-click the Ethernet adapter → Properties → Internet Protocol Version 4 (TCP/IPv4) → Properties → Use the following IP address:
-  IP: `192.168.1.1`, Subnet mask: `255.255.255.0`, Default gateway: *(leave blank)*
+> **Important:** Use the `10.42.0.x` subnet, not `192.168.1.x`. Most home routers hand out `192.168.1.x` addresses, so using that range on the Ethernet link causes a routing conflict — the RPi ends up with the same subnet on both wlan0 and eth0, which drops your WiFi SSH connection when the cable is plugged in.
 
 **On the RPi** — run this once (over existing WiFi or with keyboard/monitor):
 
@@ -218,19 +213,26 @@ network:
   version: 2
   ethernets:
     eth0:
-      addresses: [192.168.1.2/24]
+      addresses: [10.42.0.2/24]
       dhcp4: false
 EOF
 chmod 600 /etc/netplan/99-eth0-static.yaml'
 sudo netplan apply
 ```
 
-This tells the RPi: "whenever something is plugged into the Ethernet port, use IP `192.168.1.2`." Your laptop is `192.168.1.1`, RPi is `192.168.1.2` — they can now talk directly.
+This tells the RPi: "whenever something is plugged into the Ethernet port, use IP `10.42.0.2`." The subnet is separate from your home WiFi, so plugging in the cable won't affect your WiFi SSH connection.
+
+**On your laptop** — set a static IP on the Ethernet port:
+
+- **macOS:** System Settings → Network → Ethernet → Details → TCP/IP → Configure IPv4: Manually → IP: `10.42.0.1`, Subnet: `255.255.255.0`, Router: *(leave blank)*
+- **Windows 10:** When you plug in the cable, Windows will show "Unidentified network / No internet" — that's expected (no DHCP router). Then:
+  Settings → Network & Internet → Change adapter options → right-click the Ethernet adapter → Properties → Internet Protocol Version 4 (TCP/IPv4) → Properties → Use the following IP address:
+  IP: `10.42.0.1`, Subnet mask: `255.255.255.0`, Default gateway: *(leave blank)*
 
 Then SSH in from your laptop:
 
 ```bash
-ssh lipad@192.168.1.2
+ssh lipad@10.42.0.2
 ```
 
 **Bring both a USB keyboard + HDMI cable to the competition as backup.**
