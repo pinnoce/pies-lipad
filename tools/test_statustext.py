@@ -72,7 +72,7 @@ def main():
     print()
     print(' In QGC:')
     print('   Application Settings → Comm Links → Add')
-    print(f'   Type: UDP   Port: {PORT}   Target Host: 192.168.1.161')
+    print(f'   Type: UDP   Port: {PORT}   Target Host: {ip}')
     print('   Click Connect, then watch the Messages panel (🔔 top-right)')
     print('═' * 60)
     print()

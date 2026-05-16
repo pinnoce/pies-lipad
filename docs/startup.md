@@ -33,12 +33,30 @@ ros2 run camera_ros camera_node
 ## 5. Pre-flight calibration (do once after mounting, not every boot)
 
 ### 5a. Servo angles
-Power the servo on the bench and confirm the grip/release angles are correct:
+
+**Direction confirmed (2026-05-16):** 0° → CCW → closes gripper; 270° → CW → opens gripper.
+The defaults (`GRAB_ANGLE = 30`, `RELEASE_ANGLE = 240`) are in the correct directions.
+
+**Still needed — rack-and-pinion mechanism not yet attached to servo.** Once mounted:
+
+1. Find the closed mechanical limit by sweeping down from 30° in 10° steps:
 ```bash
-ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 30.0"   # should CLOSE gripper
-ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 240.0"  # should OPEN  gripper
+ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 30.0"
+ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 20.0"
+ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 10.0"
+ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 0.0"
 ```
-Edit `GRAB_ANGLE` / `RELEASE_ANGLE` in `mission_config.py` if needed.
+
+2. Find the open mechanical limit by sweeping up from 240° in 10° steps:
+```bash
+ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 240.0"
+ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 250.0"
+ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 260.0"
+ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 270.0"
+```
+
+3. Stop immediately if you hear grinding or feel resistance — rack-and-pinion teeth can strip.
+4. Set `GRAB_ANGLE` = closed limit + 10° and `RELEASE_ANGLE` = open limit − 10° in `mission_config.py`.
 
 ### 5b. Camera offset
 Hover above a visible coloured object in Position mode. Read `offset_x` / `offset_y` from
@@ -87,6 +105,16 @@ ros2 topic pub --once /mission/go std_msgs/msg/Empty "{}"
 The drone arms, takes off, flies to the pickup GPS coords, centres visually, grabs, flies to the
 drop zone, releases, and returns home — all autonomously. Watch `ros2 topic echo /mission/status`
 for state updates: `ARMING → TAKEOFF → FLY_PICKUP → VISUAL → CLIMB → FLY_DROP → DROP → RTL → DONE`.
+
+**QGC state monitoring via SiK telemetry** — each state transition is also published as a MAVLink
+STATUSTEXT message over the SiK 915 MHz radio. Open QGC → Messages panel (bell icon, top-right)
+to watch the mission progress at full radio range without SSH.
+
+To preview the full message sequence in QGC before flying:
+```bash
+python3 tools/test_statustext.py
+# Then in QGC: Application Settings → Comm Links → Add → UDP, port 14550, RPi IP
+```
 
 > To abort at any time: flip RC failsafe or take manual control. To re-open the gripper before
 > an unplanned landing: `ros2 topic pub --once /gripper/open std_msgs/msg/Empty "{}"`

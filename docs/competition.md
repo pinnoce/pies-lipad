@@ -79,3 +79,4 @@
 | marker_detector | ✅ Done | Canny+warp+pattern check, publishes JSON on `/vision/markers`, reads numbers via pytesseract |
 | bucket_detector | ✅ Done | HSV colour detection for blue/orange/green bucket, publishes JSON on `/vision/bucket` |
 | Package recovery | ✅ Done | `autonomous_mission` + `visual_centering` + `calibrate_gains`; all verified in sim |
+| tools/test_statustext.py | ✅ Done | Replays mission STATUSTEXT sequence in QGC via pymavlink UDP — no hardware needed; use to preview Messages panel before field |

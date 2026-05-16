@@ -428,7 +428,7 @@ class AutonomousMission(Node):
         msg = LogMessage()
         msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
         msg.severity = 6  # INFO
-        padded = (text + '\x00' * 127)[:127]
+        padded = (text + '\x00' * 128)[:128]
         msg.text = [ord(c) for c in padded]
         self._log_pub.publish(msg)
 

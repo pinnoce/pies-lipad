@@ -180,5 +180,5 @@ for deg in angles:
         print(f"         KP_Y: {kpy_note}")
 
 print()
-print("  All orientations now converge — set CAM_ROT_DEG in mission_config.py")
-print("  to match your actual camera mount, then run calibrate_gains to set signs.")
+print("  0°/90°/180°/270° mounts converge. Diagonal mounts (45°/135°/225°/315°) diverge (⚠ above).")
+print("  Set CAM_ROT_DEG in mission_config.py, then run calibrate_gains to set KP signs.")
