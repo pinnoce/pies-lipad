@@ -32,47 +32,105 @@ ros2 run camera_ros camera_node
 
 ## 5. Pre-flight calibration (do once after mounting, not every boot)
 
+Do these steps in order — each one builds on the previous.
+
 ### 5a. Servo angles
 
 **Direction confirmed (2026-05-16):** 0° → CCW → closes gripper; 270° → CW → opens gripper.
-The defaults (`GRAB_ANGLE = 30`, `RELEASE_ANGLE = 240`) are in the correct directions.
 
-**Still needed — rack-and-pinion mechanism not yet attached to servo.** Once mounted:
+**Still needed — rack-and-pinion mechanism not yet attached.** Once mounted, with the servo node running (step 3):
 
-1. Find the closed mechanical limit by sweeping down from 30° in 10° steps:
+**Find the closed (grab) limit** — sweep down in 10° steps from the default:
 ```bash
 ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 30.0"
 ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 20.0"
 ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 10.0"
 ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 0.0"
 ```
+Stop at the first sign of grinding or resistance. Note the last safe angle — this is the closed limit.
 
-2. Find the open mechanical limit by sweeping up from 240° in 10° steps:
+**Find the open (release) limit** — sweep up in 10° steps:
 ```bash
 ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 240.0"
 ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 250.0"
 ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 260.0"
 ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 270.0"
 ```
+Stop at the first sign of grinding or resistance. Note the last safe angle — this is the open limit.
 
-3. Stop immediately if you hear grinding or feel resistance — rack-and-pinion teeth can strip.
-4. Set `GRAB_ANGLE` = closed limit + 10° and `RELEASE_ANGLE` = open limit − 10° in `mission_config.py`.
+**Update mission_config.py:**
+```bash
+nano ~/pies-lipad/ros2_ws/src/pies_mission/pies_mission/mission_config.py
+# GRAB_ANGLE    = <closed limit> + 10
+# RELEASE_ANGLE = <open limit>   - 10
+```
+
+---
 
 ### 5b. Camera offset
-Hover above a visible coloured object in Position mode. Read `offset_x` / `offset_y` from
-the `bucket_detector` logs. Paste those values into `mission_config.py`:
-```
-CAM_OFFSET_X_PX = <value>
-CAM_OFFSET_Y_PX = <value>
+
+**What it is:** if the camera is not mounted exactly at the drone's center of mass, the bucket will appear offset from image-center even when the drone is directly above it. `CAM_OFFSET_X/Y_PX` corrects for this.
+
+**Prerequisites:** DDS agent (step 2), camera node (step 4), and bucket_detector running.
+
+Start bucket_detector alone if the full stack isn't up:
+```bash
+ros2 run pies_vision bucket_detector
 ```
 
+**Steps:**
+1. Arm and take off in **Position** mode
+2. Fly to hover directly above the bucket — use GPS position hold to stay still
+3. In another terminal, watch the detector:
+```bash
+ros2 topic echo /vision/bucket
+```
+4. Read the `offset_x` and `offset_y` fields (pixels from image centre)
+5. Update `mission_config.py`:
+```
+CAM_OFFSET_X_PX = <offset_x value>
+CAM_OFFSET_Y_PX = <offset_y value>
+```
+
+---
+
 ### 5c. Gain sign calibration
-Hover in Offboard mode with the bucket visible below, then:
+
+**What it is:** determines the correct sign (±) for `KP_X` and `KP_Y` based on camera mount orientation. Wrong signs cause the drone to fly *away* from the bucket instead of toward it. Run once per camera mount.
+
+**Prerequisites:** DDS agent (step 2), camera node (step 4), bucket_detector running, bucket visible below.
+
+**Steps:**
+1. Arm and take off in **Position** mode
+2. Fly to ~3 m above the bucket — bucket must be clearly visible in the camera feed
+3. In another terminal, run:
 ```bash
 ros2 run pies_mission calibrate_gains
 ```
-Follow the prompts (two nudges: forward then right). Writes `KP_X` / `KP_Y` signs to
-`mission_config.py` automatically. Expected result with `CAM_ROT_DEG = 0`: KP_X ≈ −0.004, KP_Y ≈ +0.004.
+4. Follow the two prompts:
+   - **Nudge 1 (forward):** script briefly commands forward movement, measures bucket pixel shift
+   - **Nudge 2 (right):** script briefly commands rightward movement, measures bucket pixel shift
+5. Script writes `KP_X` and `KP_Y` (with correct signs) directly to `mission_config.py`
+
+**Expected result** with `CAM_ROT_DEG = 0` (nose → image top): `KP_X ≈ −0.004`, `KP_Y ≈ +0.004`
+
+> During nudges the drone briefly enters Offboard mode — stay ready to take manual control.
+
+---
+
+### 5d. GPS coordinates (day-of)
+
+In QGroundControl, right-click the pickup location on the map → **Copy coordinates**. Repeat for the drop zone. Then:
+
+```bash
+nano ~/pies-lipad/ros2_ws/src/pies_mission/pies_mission/mission_config.py
+# Set:
+#   PICKUP_LAT = <lat>
+#   PICKUP_LON = <lon>
+#   DROP_LAT   = <lat>
+#   DROP_LON   = <lon>
+```
+No rebuild needed (symlink-install).
 
 ---
 
@@ -250,3 +308,95 @@ ssh lipad@10.42.0.2
 ```
 
 **Bring both a USB keyboard + HDMI cable to the competition as backup.**
+
+---
+
+## Field Day: Complete Sequence
+
+Consolidated ordered checklist for competition or field testing.
+
+### Step 1 — Before leaving home
+
+**Set GPS coordinates** (right-click in QGC → *Copy coordinates*):
+```bash
+nano ~/pies-lipad/ros2_ws/src/pies_mission/pies_mission/mission_config.py
+# Set PICKUP_LAT, PICKUP_LON, DROP_LAT, DROP_LON
+```
+
+**Start the hotspot** (while still on home WiFi or Ethernet):
+```bash
+sudo nmcli con up pies-hotspot
+```
+> RPi internet drops — expected. Ethernet SSH stays alive if the cable is still plugged in.
+
+---
+
+### Step 2 — At the field: connect
+
+On your laptop, join WiFi `piesdrone` (password: `piesdrone123`). Open three separate SSH sessions:
+```bash
+ssh lipad@172.16.0.1
+```
+
+> **No hotspot?** Plug in the Ethernet cable, set laptop static IP to `10.42.0.1` (see [Option B — Direct Ethernet Cable](#option-b--direct-ethernet-cable-fallback) above), then `ssh lipad@10.42.0.2`.
+
+---
+
+### Step 3 — Terminal 1: Pixhawk bridge
+
+Pixhawk must be powered first.
+```bash
+source ~/.bashrc
+sudo ~/pies-lipad/Micro-XRCE-DDS-Agent/build/MicroXRCEAgent serial --dev /dev/serial0 -b 921600
+```
+Leave open.
+
+---
+
+### Step 4 — Terminal 2: Launch autonomous stack
+
+```bash
+source ~/.bashrc
+ros2 launch pies_mission autonomous.launch.py
+```
+Wait until `bucket_detector`, `autonomous_mission`, and `servo_node` all report startup.
+
+---
+
+### Step 5 — Terminal 3: Monitor mission state
+
+```bash
+source ~/.bashrc
+ros2 topic echo /mission/status
+```
+Also open QGC **Messages panel** (bell icon, top-right) — state transitions stream here over SiK radio at full range.
+
+---
+
+### Step 6 — QGC pre-flight checks
+
+- SiK 915 MHz radio connected → vehicle visible in QGC
+- Geofence set with a safe ceiling (e.g. **15 m** relative to launch)
+- Altitude mode: **Relative to Launch**
+- Messages panel open (bell icon) to watch STATUSTEXT over radio
+
+---
+
+### Step 7 — Trigger the mission
+
+Place drone at the takeoff point, then:
+```bash
+ros2 topic pub --once /mission/go std_msgs/msg/Empty "{}"
+```
+State machine: `ARMING → TAKEOFF → FLY_PICKUP → VISUAL → CLIMB → FLY_DROP → DROP → RTL → DONE`
+
+---
+
+### Step 8 — Abort
+
+Flip RC failsafe **or** switch to **Position** mode in QGC — immediately interrupts OFFBOARD.
+
+To re-open gripper before an unplanned landing:
+```bash
+ros2 topic pub --once /gripper/open std_msgs/msg/Empty "{}"
+```
