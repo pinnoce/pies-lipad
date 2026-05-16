@@ -206,7 +206,9 @@ Plug an Ethernet cable directly between your laptop and the RPi. Because there's
 **On your laptop** — set a static IP on the Ethernet port:
 
 - **macOS:** System Settings → Network → Ethernet → Details → TCP/IP → Configure IPv4: Manually → IP: `192.168.1.1`, Subnet: `255.255.255.0`
-- **Windows:** Settings → Network → Ethernet → Edit → Manual → IPv4 on → IP: `192.168.1.1`, Subnet: `255.255.255.0`
+- **Windows 10:** When you plug in the cable, Windows will show "Unidentified network / No internet" — that's expected (no DHCP router). Then:
+  Settings → Network & Internet → Change adapter options → right-click the Ethernet adapter → Properties → Internet Protocol Version 4 (TCP/IPv4) → Properties → Use the following IP address:
+  IP: `192.168.1.1`, Subnet mask: `255.255.255.0`, Default gateway: *(leave blank)*
 
 **On the RPi** — run this once (over existing WiFi or with keyboard/monitor):
 
