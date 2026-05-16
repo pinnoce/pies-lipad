@@ -251,8 +251,8 @@ class VisualCentering(Node):
             self.get_logger().info(
                 f'CENTERING [{bucket["color"]}]  '
                 f'err=({err_x:+.0f},{err_y:+.0f})px  dist={dist:.1f}px  '
-                f'fwd/right=({vel_fwd:+.3f},{vel_right:+.3f})m/s  hdg={math.degrees(hdg):.0f}°'
-            )
+                f'fwd/right=({vel_fwd:+.3f},{vel_right:+.3f})m/s  hdg={math.degrees(hdg):.0f}°',
+                throttle_duration_sec=0.5)
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
