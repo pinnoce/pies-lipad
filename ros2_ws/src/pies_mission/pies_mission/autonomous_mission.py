@@ -33,6 +33,7 @@ from px4_msgs.msg import (
     VehicleLocalPosition,
     VehicleGlobalPosition,
     VehicleStatus,
+    LogMessage,
 )
 
 from . import mission_config as cfg
@@ -110,6 +111,8 @@ class AutonomousMission(Node):
             TrajectorySetpoint, '/fmu/in/trajectory_setpoint', _PX4_QOS)
         self._cmd_pub    = self.create_publisher(
             VehicleCommand, '/fmu/in/vehicle_command', _PX4_QOS)
+        self._log_pub    = self.create_publisher(
+            LogMessage, '/fmu/in/log_message', _PX4_QOS)
         self._servo_pub  = self.create_publisher(Float32, '/servo/angle', 10)
         self._status_pub = self.create_publisher(String, '/mission/status', 10)
 
@@ -362,6 +365,7 @@ class AutonomousMission(Node):
         self._grabbed = True
         self.get_logger().info(f'══ GRABBED [{colour}] ══  servo → {cfg.GRAB_ANGLE}°')
         self._publish_status('GRABBED')
+        self._statustext(f'GRABBED [{colour}]')
 
     def _open_gripper(self):
         """Open gripper to receive the bucket handle. Called before takeoff."""
@@ -376,6 +380,7 @@ class AutonomousMission(Node):
         msg.data = float(cfg.RELEASE_ANGLE)
         self._servo_pub.publish(msg)
         self.get_logger().info(f'Gripper released  servo → {cfg.RELEASE_ANGLE}°')
+        self._statustext('RELEASED at drop zone')
 
     def _send_vehicle_cmd(self, command: int, **params):
         msg = VehicleCommand()
@@ -418,11 +423,21 @@ class AutonomousMission(Node):
         sp.timestamp = ts
         self._sp_pub.publish(sp)
 
+    def _statustext(self, text: str):
+        """Relay a message to QGC via MAVLink STATUSTEXT over the SiK telemetry link."""
+        msg = LogMessage()
+        msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
+        msg.severity = 6  # INFO
+        padded = (text + '\x00' * 127)[:127]
+        msg.text = [ord(c) for c in padded]
+        self._log_pub.publish(msg)
+
     def _transition(self, new_state: str):
         if new_state != self._state:
             self.get_logger().info(f'Mission: {self._state} → {new_state}')
             self._state = new_state
             self._publish_status(new_state)
+            self._statustext(f'Mission: {new_state}')
 
     def _publish_status(self, status: str):
         msg = String()
