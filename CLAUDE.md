@@ -29,6 +29,18 @@ Pixhawk (XRCE-DDS Client, TELEM2 921600 baud)
             └── /fmu/out/vehicle_local_position  (NED pos + heading)
 ```
 
+## RPi Connection Methods
+
+| Method | Address | When to use |
+|---|---|---|
+| Home WiFi | `ssh lipad@rpi` | General development |
+| Ethernet cable | `ssh lipad@10.42.0.2` | Safe for hotspot setup; no internet dependency |
+| RPi hotspot | `ssh lipad@172.16.0.1` | At the field (no WiFi infrastructure) |
+
+Hotspot SSID: `piesdrone` / password: `piesdrone123`. Start: `sudo nmcli con up pies-hotspot`.
+The RPi has one WiFi radio — starting the hotspot drops its internet connection. Never start the
+hotspot at home when Claude Code or internet access is needed on the RPi.
+
 ---
 
 ## ROS2 Workspace (pies_servo)

@@ -166,35 +166,49 @@ ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 90.0"
 
 ## Field Connection (no WiFi infrastructure)
 
-### Option A — RPi WiFi Hotspot
+### Option A — RPi WiFi Hotspot ✅ confirmed working
 
-Run this **once** with a keyboard/monitor plugged into the RPi (not over SSH — it will drop the connection):
+**One-time setup** (safe to run over Ethernet SSH — do this once, already done):
 
 ```bash
-sudo apt install network-manager
+sudo apt install -y network-manager
 sudo bash -c 'echo "network: {config: disabled}" > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg'
 sudo bash -c 'printf "network:\n  version: 2\n  renderer: NetworkManager\n" > /etc/netplan/99-nm.yaml'
+sudo chmod 600 /etc/netplan/99-nm.yaml
 sudo netplan apply
-nmcli con add type wifi ifname wlan0 con-name pies-hotspot ssid "piesdrone" mode ap \
-  ipv4.method shared wifi-sec.key-mgmt wpa-psk wifi-sec.psk "piesdrone123" autoconnect no
+sudo nmcli con add type wifi ifname wlan0 con-name pies-hotspot ssid "piesdrone" mode ap \
+  ipv4.method shared ipv4.addresses 172.16.0.1/24 \
+  wifi-sec.key-mgmt wpa-psk wifi-sec.psk "piesdrone123" autoconnect no
 ```
 
-At the field, start the hotspot:
+> **Subnet note:** `172.16.0.x` is used deliberately — `10.42.0.x` is the Ethernet cable subnet
+> and `192.168.1.x` is typically the home router. Keeping all three separate avoids routing conflicts.
+
+**At the field — start the hotspot:**
 
 ```bash
-nmcli con up pies-hotspot
+sudo nmcli con up pies-hotspot
 ```
 
-Then SSH in from your laptop:
+> **Important:** The RPi has one WiFi radio. When the hotspot starts, `wlan0` switches from
+> client mode (home WiFi = internet) to AP mode (broadcasting piesdrone). The RPi loses internet
+> while the hotspot is active — this is expected and fine at the field.
+> Do **not** start the hotspot at home if you need internet on the RPi (e.g. Claude Code).
+
+On your laptop — join WiFi `piesdrone` (password: `piesdrone123`), then:
 
 ```bash
-ssh lipad@10.42.0.1
+ssh lipad@172.16.0.1
 ```
 
-Stop the hotspot (to reconnect to home WiFi):
+> **Auto-connect warning:** If your laptop has previously connected to `piesdrone`, Windows may
+> auto-join it next time the hotspot starts, cutting your internet. Right-click `piesdrone` in
+> the WiFi list → **Forget** to prevent this. Re-join manually at the field when needed.
+
+**Stop the hotspot** (RPi reconnects to home WiFi automatically):
 
 ```bash
-nmcli con down pies-hotspot
+sudo nmcli con down pies-hotspot
 ```
 
 ---

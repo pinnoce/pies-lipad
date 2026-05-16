@@ -25,6 +25,17 @@ bash setup.sh
 
 > **After setup:** reboot before first use (dialout group membership needs a fresh login).
 
+## Connecting to the RPi
+
+| Method | When | Command |
+|---|---|---|
+| Home WiFi | Development at home | `ssh lipad@rpi` |
+| Ethernet cable | Development / hotspot setup | `ssh lipad@10.42.0.2` |
+| RPi hotspot | At the field (no WiFi infrastructure) | `ssh lipad@172.16.0.1` |
+
+**Hotspot:** `sudo nmcli con up pies-hotspot` → laptop joins `piesdrone` (password: `piesdrone123`).
+The RPi loses internet while the hotspot is active (single WiFi radio). See [docs/startup.md](docs/startup.md) for full setup.
+
 ## Daily Startup
 
 See [docs/startup.md](docs/startup.md) for the full sequence. Short version:
