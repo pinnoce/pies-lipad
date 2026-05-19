@@ -174,6 +174,22 @@ echo ">> Updating .bashrc..."
 add_to_bashrc "source /opt/ros/humble/setup.bash"
 add_to_bashrc "source $REPO/ros2_ws/install/local_setup.bash"
 
+# ── 12. Claude Code memory ───────────────────────────────────────────────────
+# Stores Claude's project memory in the repo so it survives SD card swaps.
+# Symlinks ~/.claude/projects/-home-lipad-pies-lipad/memory → $REPO/memory
+echo ">> Linking Claude Code memory..."
+CLAUDE_PROJ="$HOME/.claude/projects/-home-lipad-pies-lipad"
+mkdir -p "$CLAUDE_PROJ"
+if [ -L "$CLAUDE_PROJ/memory" ]; then
+    echo "   Already linked, skipping."
+elif [ ! -e "$CLAUDE_PROJ/memory" ]; then
+    ln -s "$REPO/memory" "$CLAUDE_PROJ/memory"
+    echo "   Linked: $CLAUDE_PROJ/memory → $REPO/memory"
+else
+    echo "   WARNING: $CLAUDE_PROJ/memory exists as a real directory — not replacing."
+    echo "   To migrate: rm -rf $CLAUDE_PROJ/memory && ln -s $REPO/memory $CLAUDE_PROJ/memory"
+fi
+
 echo ""
 echo "========================================"
 echo "  Setup complete!"
