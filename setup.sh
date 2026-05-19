@@ -65,7 +65,7 @@ sudo usermod -aG video "$USER"
 
 # ── 3. Python dependencies ───────────────────────────────────────────────────
 echo ">> Installing Python dependencies..."
-pip install --user \
+python3 -m pip install --user \
     "numpy<2" \
     "setuptools==59.6.0" \
     "empy==3.3.4" \
@@ -151,6 +151,7 @@ fi
 
 # ── 8. rosdep ────────────────────────────────────────────────────────────────
 echo ">> Running rosdep..."
+source /opt/ros/humble/setup.bash  # rosdep needs ROS_DISTRO set
 sudo rosdep init 2>/dev/null || true  # already initialized is not an error
 rosdep update
 rosdep install --from-paths "$REPO/ros2_ws/src" --ignore-src -r -y
