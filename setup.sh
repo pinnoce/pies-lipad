@@ -10,6 +10,10 @@ add_to_bashrc() {
     grep -qF "$1" "$BASHRC" || echo "$1" >> "$BASHRC"
 }
 
+add_to_config() {
+    grep -q "^$1" /boot/firmware/config.txt || echo "$1" | sudo tee -a /boot/firmware/config.txt
+}
+
 echo ""
 echo "========================================"
 echo "  pies-lipad setup"
@@ -49,26 +53,81 @@ sudo apt install -y \
     ros-humble-cv-bridge \
     python3-opencv \
     v4l-utils \
-    libcamera-tools
+    libcamera-tools \
+    network-manager \
+    tesseract-ocr
 
-# dialout group covers /dev/gpiochip0 (lgpio) and /dev/ttyAMA0 (serial)
-echo ">> Adding $USER to dialout group (GPIO + serial access)..."
+# dialout: /dev/serial0 (Pixhawk) and /dev/gpiochip0 (lgpio)
+# video:   /dev/video* and /dev/media* (camera)
+echo ">> Adding $USER to dialout and video groups..."
 sudo usermod -aG dialout "$USER"
+sudo usermod -aG video "$USER"
 
 # ── 3. Python dependencies ───────────────────────────────────────────────────
 echo ">> Installing Python dependencies..."
-pip install --user "numpy<2" "setuptools==59.6.0" "empy==3.3.4" pyros-genmsg
+pip install --user \
+    "numpy<2" \
+    "setuptools==59.6.0" \
+    "empy==3.3.4" \
+    pyros-genmsg \
+    pymavlink \
+    pytesseract
 
-# ── 4. Camera config ─────────────────────────────────────────────────────────
-echo ">> Configuring camera in /boot/firmware/config.txt..."
-if ! grep -q "^camera_auto_detect=1" /boot/firmware/config.txt; then
-    echo "camera_auto_detect=1" | sudo tee -a /boot/firmware/config.txt
-fi
-if ! grep -q "^gpu_mem=128" /boot/firmware/config.txt; then
-    echo "gpu_mem=128" | sudo tee -a /boot/firmware/config.txt
+# ── 4. Boot config (camera + serial) ────────────────────────────────────────
+echo ">> Configuring /boot/firmware/config.txt..."
+# Camera
+add_to_config "camera_auto_detect=1"
+add_to_config "gpu_mem=128"
+# UART for Pixhawk on /dev/serial0 (TELEM2 at 921600 baud)
+add_to_config "enable_uart=1"
+# Disable Bluetooth to free the primary UART (wlan0 not affected)
+add_to_config "dtoverlay=disable-bt"
+
+# ── 5. NetworkManager + field connections ────────────────────────────────────
+# Safe to run over SSH — netplan apply transfers management to NM without
+# dropping active connections.
+echo ">> Setting up NetworkManager..."
+
+# Disable cloud-init network management (conflicts with NM)
+if [ ! -f /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg ]; then
+    sudo bash -c 'echo "network: {config: disabled}" > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg'
 fi
 
-# ── 5. Micro-XRCE-DDS-Agent ─────────────────────────────────────────────────
+# Switch netplan renderer to NetworkManager
+if [ ! -f /etc/netplan/99-nm.yaml ]; then
+    sudo bash -c 'printf "network:\n  version: 2\n  renderer: NetworkManager\n" > /etc/netplan/99-nm.yaml'
+    sudo chmod 600 /etc/netplan/99-nm.yaml
+    sudo netplan apply
+    sleep 3  # give NM time to take over before running nmcli
+fi
+
+# Ethernet static IP — direct cable connection to laptop (10.42.0.1 ↔ 10.42.0.2)
+if [ ! -f /etc/netplan/99-eth0-static.yaml ]; then
+    sudo bash -c 'cat > /etc/netplan/99-eth0-static.yaml << EOF
+network:
+  version: 2
+  ethernets:
+    eth0:
+      addresses: [10.42.0.2/24]
+      dhcp4: false
+EOF'
+    sudo chmod 600 /etc/netplan/99-eth0-static.yaml
+    sudo netplan apply
+fi
+
+# WiFi hotspot for field use
+# autoconnect yes — starts automatically on boot at the field.
+# At home: run "sudo nmcli con down pies-hotspot" to restore internet.
+if ! sudo nmcli con show pies-hotspot &>/dev/null; then
+    sudo nmcli con add type wifi ifname wlan0 con-name pies-hotspot ssid "piesdrone" mode ap \
+        ipv4.method shared ipv4.addresses 172.16.0.1/24 \
+        wifi-sec.key-mgmt wpa-psk wifi-sec.psk "piesdrone123" autoconnect yes
+    echo "   Hotspot created: SSID=piesdrone, IP=172.16.0.1, autoconnect=yes"
+else
+    echo "   pies-hotspot already exists, skipping."
+fi
+
+# ── 6. Micro-XRCE-DDS-Agent ─────────────────────────────────────────────────
 echo ">> Cloning Micro-XRCE-DDS-Agent..."
 if [ ! -d "$REPO/Micro-XRCE-DDS-Agent" ]; then
     git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git "$REPO/Micro-XRCE-DDS-Agent"
@@ -76,7 +135,7 @@ else
     echo "   Micro-XRCE-DDS-Agent already present, skipping."
 fi
 
-# ── 6. px4_msgs + px4_ros_com ────────────────────────────────────────────────
+# ── 7. px4_msgs + px4_ros_com ────────────────────────────────────────────────
 echo ">> Cloning PX4 ROS2 packages..."
 PX4_SRC="$REPO/ros2_ws/src"
 if [ ! -d "$PX4_SRC/px4_msgs" ]; then
@@ -90,19 +149,25 @@ else
     echo "   px4_ros_com already present, skipping."
 fi
 
-# ── 7. Build Micro-XRCE-DDS-Agent ───────────────────────────────────────────
+# ── 8. rosdep ────────────────────────────────────────────────────────────────
+echo ">> Running rosdep..."
+sudo rosdep init 2>/dev/null || true  # already initialized is not an error
+rosdep update
+rosdep install --from-paths "$REPO/ros2_ws/src" --ignore-src -r -y
+
+# ── 9. Build Micro-XRCE-DDS-Agent ───────────────────────────────────────────
 echo ">> Building Micro-XRCE-DDS-Agent (this takes a while)..."
 mkdir -p "$REPO/Micro-XRCE-DDS-Agent/build"
 cmake -S "$REPO/Micro-XRCE-DDS-Agent" -B "$REPO/Micro-XRCE-DDS-Agent/build" -DCMAKE_BUILD_TYPE=Release
 cmake --build "$REPO/Micro-XRCE-DDS-Agent/build" --target MicroXRCEAgent -- -j$(nproc)
 
-# ── 8. Build ROS2 workspace ──────────────────────────────────────────────────
+# ── 10. Build ROS2 workspace ─────────────────────────────────────────────────
 echo ">> Building ROS2 workspace (this takes a while)..."
 source /opt/ros/humble/setup.bash
 cd "$REPO/ros2_ws"
 colcon build --symlink-install
 
-# ── 9. Update .bashrc ────────────────────────────────────────────────────────
+# ── 11. Update .bashrc ───────────────────────────────────────────────────────
 echo ">> Updating .bashrc..."
 add_to_bashrc "source /opt/ros/humble/setup.bash"
 add_to_bashrc "source $REPO/ros2_ws/install/local_setup.bash"
@@ -110,12 +175,17 @@ add_to_bashrc "source $REPO/ros2_ws/install/local_setup.bash"
 echo ""
 echo "========================================"
 echo "  Setup complete!"
-echo "  IMPORTANT: reboot (or log out/in) before first use so"
-echo "  the dialout group membership takes effect."
-echo "  Run after reboot: source ~/.bashrc"
 echo ""
-echo "  To start the system (see docs/startup.md for details):"
+echo "  IMPORTANT: reboot before first use so group memberships"
+echo "  (dialout, video) and UART/BT overlay take effect."
+echo ""
+echo "  After reboot:"
+echo "    source ~/.bashrc"
+echo ""
+echo "  To start the system (see docs/startup.md for full details):"
 echo "    sudo $REPO/Micro-XRCE-DDS-Agent/build/MicroXRCEAgent serial --dev /dev/serial0 -b 921600"
-echo "    ros2 run pies_servo servo_node"
-echo "    ros2 run camera_ros camera_node"
+echo "    ros2 launch pies_mission autonomous.launch.py"
+echo ""
+echo "  Field connection: hotspot starts automatically on boot."
+echo "  At home after field use: sudo nmcli con down pies-hotspot"
 echo "========================================"
