@@ -11,7 +11,7 @@ add_to_bashrc() {
 }
 
 add_to_config() {
-    grep -q "^$1" /boot/firmware/config.txt || echo "$1" | sudo tee -a /boot/firmware/config.txt
+    grep -q "^$1" /boot/firmware/config.txt || { echo "   Adding: $1"; echo "$1" | sudo tee -a /boot/firmware/config.txt > /dev/null; }
 }
 
 echo ""
@@ -84,8 +84,9 @@ add_to_config "enable_uart=1"
 add_to_config "dtoverlay=disable-bt"
 
 # ── 5. NetworkManager + field connections ────────────────────────────────────
-# Safe to run over SSH — netplan apply transfers management to NM without
-# dropping active connections.
+# Safe over Ethernet SSH (recommended). Over WiFi SSH, netplan apply may
+# briefly drop the connection while NM takes over — usually reconnects in
+# a few seconds but could interrupt this script.
 echo ">> Setting up NetworkManager..."
 
 # Disable cloud-init network management (conflicts with NM)
