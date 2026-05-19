@@ -33,8 +33,7 @@ bash setup.sh
 | Ethernet cable | Development / hotspot setup | `ssh lipad@10.42.0.2` |
 | RPi hotspot | At the field (no WiFi infrastructure) | `ssh lipad@172.16.0.1` |
 
-**Hotspot:** `sudo nmcli con up pies-hotspot` → laptop joins `piesdrone` (password: `piesdrone123`).
-The RPi loses internet while the hotspot is active (single WiFi radio). See [docs/startup.md](docs/startup.md) for full setup.
+**Hotspot:** starts automatically on boot at the field (`autoconnect yes`). Laptop joins `piesdrone` (password: `piesdrone123`) → `ssh lipad@172.16.0.1`. At home after field use, run `sudo nmcli con down pies-hotspot` to restore internet. Always bring the Ethernet cable as a field backup. See [docs/startup.md](docs/startup.md) for full setup.
 
 ## Daily Startup
 

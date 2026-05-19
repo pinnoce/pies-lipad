@@ -37,9 +37,9 @@ Pixhawk (XRCE-DDS Client, TELEM2 921600 baud)
 | Ethernet cable | `ssh lipad@10.42.0.2` | Safe for hotspot setup; no internet dependency |
 | RPi hotspot | `ssh lipad@172.16.0.1` | At the field (no WiFi infrastructure) |
 
-Hotspot SSID: `piesdrone` / password: `piesdrone123`. Start: `sudo nmcli con up pies-hotspot`.
-The RPi has one WiFi radio — starting the hotspot drops its internet connection. Never start the
-hotspot at home when Claude Code or internet access is needed on the RPi.
+Hotspot SSID: `piesdrone` / password: `piesdrone123`. Set to `autoconnect yes` — starts automatically on boot at the field, no manual step needed. At home after field use: `sudo nmcli con down pies-hotspot` to restore internet (RPi has one WiFi radio; hotspot drops internet). Always bring Ethernet cable to the field as backup — if hotspot fails, `ssh lipad@10.42.0.2` and start hotspot manually.
+
+**Indoor arming:** Position mode requires GPS lock. Use **Stabilized** mode for indoor motor tests — no GPS needed.
 
 ---
 

@@ -70,7 +70,7 @@
 | Micro-XRCE-DDS-Agent | ✅ Done | Serial to Pixhawk at 921600 baud, `/dev/serial0` |
 | ROS2 Humble | ✅ Done | PX4 `/fmu/` topics flowing |
 | pies_servo | ✅ Done | `/servo/angle` (Float32, 0–270°), GPIO 12, lgpio |
-| camera_ros | ✅ Done | `/camera/image_raw` at ~16 FPS, 800×600 NV21, OV5647 |
+| camera_ros | ✅ Done | `/camera/image_raw` at ~16 FPS, 800×600 NV21, OV5647 — CSI ribbon cable confirmed seated 2026-05-18 |
 | Geofence | ✅ Done | Configured in QGroundControl — PX4 enforces RTL on breach natively, no custom code needed |
 | tools/capture_frame.py | ✅ Done | Saves one JPEG from `/camera/image_raw` for testing |
 | gripper_trigger | ✅ Done | GPS-proximity servo trigger for pickup + drop; coords set day-of via --ros-args |
