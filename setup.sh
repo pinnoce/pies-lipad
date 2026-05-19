@@ -44,6 +44,7 @@ fi
 echo ">> Installing system packages..."
 sudo apt update
 sudo apt install -y \
+    git \
     build-essential \
     cmake \
     python3-pip \
@@ -56,6 +57,10 @@ sudo apt install -y \
     libcamera-tools \
     network-manager \
     tesseract-ocr
+
+# ModemManager probes serial ports on attach and sends AT commands —
+# will interfere with the Pixhawk connection on /dev/serial0.
+sudo apt remove -y modemmanager 2>/dev/null || true
 
 # dialout: /dev/serial0 (Pixhawk) and /dev/gpiochip0 (lgpio)
 # video:   /dev/video* and /dev/media* (camera)
@@ -82,6 +87,13 @@ add_to_config "gpu_mem=128"
 add_to_config "enable_uart=1"
 # Disable Bluetooth to free the primary UART (wlan0 not affected)
 add_to_config "dtoverlay=disable-bt"
+
+# Disable serial console login shell — competes with Pixhawk on /dev/serial0
+echo ">> Disabling serial console..."
+sudo systemctl stop    serial-getty@ttyAMA0.service 2>/dev/null || true
+sudo systemctl disable serial-getty@ttyAMA0.service 2>/dev/null || true
+sudo systemctl stop    serial-getty@ttyS0.service   2>/dev/null || true
+sudo systemctl disable serial-getty@ttyS0.service   2>/dev/null || true
 
 # ── 5. NetworkManager + field connections ────────────────────────────────────
 # Safe over Ethernet SSH (recommended). Over WiFi SSH, netplan apply may
