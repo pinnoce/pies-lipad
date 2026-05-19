@@ -236,28 +236,31 @@ sudo chmod 600 /etc/netplan/99-nm.yaml
 sudo netplan apply
 sudo nmcli con add type wifi ifname wlan0 con-name pies-hotspot ssid "piesdrone" mode ap \
   ipv4.method shared ipv4.addresses 172.16.0.1/24 \
-  wifi-sec.key-mgmt wpa-psk wifi-sec.psk "piesdrone123" autoconnect no
+  wifi-sec.key-mgmt wpa-psk wifi-sec.psk "piesdrone123" autoconnect yes
 ```
 
 > **Subnet note:** `172.16.0.x` is used deliberately — `10.42.0.x` is the Ethernet cable subnet
 > and `192.168.1.x` is typically the home router. Keeping all three separate avoids routing conflicts.
 
-**At the field — start the hotspot:**
+**Update existing installation to autoconnect** (run this once — already created with `autoconnect no`):
 
 ```bash
-sudo nmcli con up pies-hotspot
+sudo nmcli con modify pies-hotspot connection.autoconnect yes
+```
+
+The hotspot now starts automatically on every boot. At the field this means you just power on the RPi and `piesdrone` appears — no manual start needed. At home, NM keeps the existing home WiFi connection active and the hotspot stays dormant.
+
+**At the field — connect:**
+
+On your laptop, join WiFi `piesdrone` (password: `piesdrone123`), then:
+
+```bash
+ssh lipad@172.16.0.1
 ```
 
 > **Important:** The RPi has one WiFi radio. When the hotspot starts, `wlan0` switches from
 > client mode (home WiFi = internet) to AP mode (broadcasting piesdrone). The RPi loses internet
 > while the hotspot is active — this is expected and fine at the field.
-> Do **not** start the hotspot at home if you need internet on the RPi (e.g. Claude Code).
-
-On your laptop — join WiFi `piesdrone` (password: `piesdrone123`), then:
-
-```bash
-ssh lipad@172.16.0.1
-```
 
 > **Auto-connect warning:** If your laptop has previously connected to `piesdrone`, Windows may
 > auto-join it next time the hotspot starts, cutting your internet. Right-click `piesdrone` in
@@ -268,6 +271,9 @@ ssh lipad@172.16.0.1
 ```bash
 sudo nmcli con down pies-hotspot
 ```
+
+> **At home after returning from the field:** always run the stop command above. If the hotspot
+> is active at home, the RPi loses internet (Claude Code, apt, git all stop working).
 
 ---
 
@@ -323,22 +329,20 @@ nano ~/pies-lipad/ros2_ws/src/pies_mission/pies_mission/mission_config.py
 # Set PICKUP_LAT, PICKUP_LON, DROP_LAT, DROP_LON
 ```
 
-**Start the hotspot** (while still on home WiFi or Ethernet):
-```bash
-sudo nmcli con up pies-hotspot
-```
-> RPi internet drops — expected. Ethernet SSH stays alive if the cable is still plugged in.
+**Pack the Ethernet cable.** It's the only fallback if the hotspot fails at the field.
+
+> The hotspot (`autoconnect yes`) starts automatically when the RPi boots at the field — no manual step needed. Do not start it at home or the RPi loses internet.
 
 ---
 
 ### Step 2 — At the field: connect
 
-On your laptop, join WiFi `piesdrone` (password: `piesdrone123`). Open three separate SSH sessions:
+Power on the RPi. After ~30 s, `piesdrone` will appear in your laptop's WiFi list. Join it (password: `piesdrone123`). Open three separate SSH sessions:
 ```bash
 ssh lipad@172.16.0.1
 ```
 
-> **No hotspot?** Plug in the Ethernet cable, set laptop static IP to `10.42.0.1` (see [Option B — Direct Ethernet Cable](#option-b--direct-ethernet-cable-fallback) above), then `ssh lipad@10.42.0.2`.
+> **Hotspot not appearing?** Plug in the Ethernet cable, set laptop static IP to `10.42.0.1` (see [Option B — Direct Ethernet Cable](#option-b--direct-ethernet-cable-fallback) above), SSH to `10.42.0.2`, then start the hotspot manually: `sudo nmcli con up pies-hotspot`.
 
 ---
 
