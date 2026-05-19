@@ -219,6 +219,12 @@ ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 90.0"
 - The Pixhawk serial port is `/dev/serial0` at 921600 baud (TELEM2).
 - Servo is on GPIO 12, range 0–270°.
 - If the servo node fails with **permission denied**, the user isn't in the `dialout` group yet — run `sudo usermod -aG dialout $USER` and reboot.
+- If the DDS agent starts but no `/fmu/` topics appear, check for serial port conflicts:
+  ```bash
+  systemctl status serial-getty@ttyAMA0.service   # should be inactive/disabled
+  which ModemManager                               # should print nothing
+  ```
+  Both are disabled/removed by `setup.sh`. If present: `sudo systemctl disable serial-getty@ttyAMA0 && sudo apt remove modemmanager`.
 
 ---
 

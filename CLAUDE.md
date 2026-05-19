@@ -41,6 +41,29 @@ Hotspot SSID: `piesdrone` / password: `piesdrone123`. Set to `autoconnect yes` �
 
 **Indoor arming:** Position mode requires GPS lock. Use **Stabilized** mode for indoor motor tests — no GPS needed.
 
+## Fresh SD Card Setup
+
+Flash **Ubuntu Server 22.04 LTS (64-bit)** with Raspberry Pi Imager. Click the gear icon ⚙ and set: hostname `rpi`, username `lipad`, WiFi credentials, enable SSH. Then:
+
+```bash
+ssh lipad@rpi
+git clone https://github.com/pinnoce/pies-lipad.git ~/pies-lipad
+cd ~/pies-lipad
+bash setup.sh   # ~30–45 min — run as lipad, NOT sudo
+sudo reboot
+```
+
+`setup.sh` handles everything: ROS2, all packages, camera config, UART config, ModemManager removal, serial getty disable, NetworkManager, hotspot (`piesdrone`), Ethernet static IP (`10.42.0.2`), rosdep, builds, `.bashrc`, and Claude memory symlink.
+
+## Serial Port (`/dev/serial0`)
+
+Pixhawk connects via TELEM2 → `/dev/serial0` (= `/dev/ttyAMA0`) at 921600 baud. Two things that silently break this if present:
+
+- **ModemManager** — probes serial ports on attach, sends AT commands to the Pixhawk. `setup.sh` removes it.
+- **serial-getty** — Ubuntu may run a login shell on `ttyAMA0`. `setup.sh` disables `serial-getty@ttyAMA0` and `serial-getty@ttyS0`.
+
+If the DDS agent connects but no `/fmu/` topics appear, check: `systemctl status serial-getty@ttyAMA0` and `which ModemManager`.
+
 ---
 
 ## ROS2 Workspace (pies_servo)
