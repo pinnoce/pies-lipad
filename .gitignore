@@ -15,3 +15,7 @@ ros2_ws/src/px4_ros_com/
 # Python cache
 __pycache__/
 *.pyc
+
+# Runtime artifacts
+log/
+captured_frame.jpg

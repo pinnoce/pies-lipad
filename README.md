@@ -15,15 +15,33 @@ Built on a Raspberry Pi 4 companion computer running Ubuntu 22.04, connected to 
 
 ## Fresh Setup (new SD card)
 
+**1. Flash the SD card** using [Raspberry Pi Imager](https://www.raspberrypi.com/software/):
+- OS: **Ubuntu Server 22.04 LTS (64-bit)**
+- Click the **gear icon ⚙** before writing and set:
+  - Hostname: `rpi`
+  - Username: `lipad` / password: your choice
+  - WiFi: home SSID and password
+  - Enable SSH: yes, password authentication
+
+**2. First boot** — insert SD card, power on, wait ~60 s, then SSH in:
+```bash
+ssh lipad@rpi
+```
+
+**3. Clone and run setup** (~30–45 min):
 ```bash
 git clone https://github.com/pinnoce/pies-lipad.git ~/pies-lipad
 cd ~/pies-lipad
 bash setup.sh
 ```
 
-`setup.sh` installs ROS2 Humble, all dependencies, clones and builds Micro-XRCE-DDS-Agent and the PX4 ROS2 packages, builds the ROS2 workspace, and configures `.bashrc`. Takes ~30–45 minutes on first run.
+`setup.sh` installs ROS2 Humble, all dependencies, builds Micro-XRCE-DDS-Agent and the ROS2 workspace, configures NetworkManager, creates the field hotspot, and links Claude Code memory.
 
-> **After setup:** reboot before first use (dialout group membership needs a fresh login).
+**4. Reboot:**
+```bash
+sudo reboot
+```
+> Required for `dialout`/`video` group memberships and the Bluetooth-disable overlay to take effect.
 
 ## Connecting to the RPi
 

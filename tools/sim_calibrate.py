@@ -42,7 +42,7 @@ DT        = 0.05    # 20 Hz control loop
 
 NUDGE_VEL = 0.15    # matches calibrate_gains.py _NUDGE_VEL
 NUDGE_S   = 0.8     # matches calibrate_gains.py _NUDGE_S
-MIN_DISP  = 3.0     # px — matches calibrate_gains.py _MIN_DISP_PX
+MIN_DISP  = 3.0     # px — matches calibrate_gains.py _MIN_PROJ_PX
 
 START_ERR_X = 150.0  # bucket start error for convergence test (pixels)
 START_ERR_Y = 100.0

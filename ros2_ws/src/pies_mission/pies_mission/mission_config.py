@@ -11,13 +11,15 @@ With `colcon build --symlink-install` you do NOT need to rebuild after editing.
 # ── GPS waypoints (decimal degrees) ──────────────────────────────────────────
 # Get these from QGroundControl (right-click map → Copy coordinates) or a GPS app.
 
-PICKUP_LAT =  0.0000   # latitude  of bucket / green X
-PICKUP_LON =  0.0000   # longitude of bucket / green X
+PICKUP_LAT =  0.0   # latitude  of bucket / green X
+PICKUP_LON =  0.0   # longitude of bucket / green X
 
-DROP_LAT   =  0.0000   # latitude  of drop zone
-DROP_LON   =  0.0000   # longitude of drop zone
+DROP_LAT   =  0.0   # latitude  of drop zone
+DROP_LON   =  0.0   # longitude of drop zone
 
 # ── Servo angles — calibrate on the bench before each event ──────────────────
+# Direction confirmed: 0° = CCW = close, 270° = CW = open.
+# Sweep to mechanical limits in 10° steps, then add/subtract 10° margin.
 
 GRAB_ANGLE    =  30.0   # servo angle that CLOSES the gripper
 RELEASE_ANGLE = 240.0   # servo angle that OPENS  the gripper
