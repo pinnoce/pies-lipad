@@ -12,7 +12,7 @@ Full competition details, geofence coordinates, missions, scoring, and build ord
 **Why:** Building toward full autonomous mission capability for C-UASC (June 5–7, 2026).
 **How to apply:** Always refer to docs/competition.md for rules and scoring. Prioritize autonomous operation for the 25% bonus. Package Recovery (16 pts) is highest value and the gripper is purpose-built for it.
 
-## Software Status (as of 2026-05-18)
+## Software Status (as of 2026-05-20)
 - ✅ Micro-XRCE-DDS-Agent built and running (serial to Pixhawk)
 - ✅ ROS2 Humble installed, PX4 topics flowing
 - ✅ pies_servo ROS2 package — servo controlled via /servo/angle

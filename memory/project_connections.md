@@ -46,6 +46,10 @@ Position mode requires GPS lock — won't arm indoors. Use **Stabilized** mode f
 
 OV5647 ribbon cable must be fully seated in both the RPi CAM port and camera module connector. Confirmed issue 2026-05-18: cable was loose → "no cameras available" from libcamera. After reseating, camera came up immediately. Diagnostic: `dmesg | grep -i 'ov5647\|unicam'` — should show driver messages at boot.
 
+## SD card history
+
+- **2026-05-20:** Fresh SD card set up. `setup.sh` failed partway through; user manually followed PX4 guide. `px4_msgs` and `px4_ros_com` had to be cloned by hand. `numpy` downgraded to <2, `setuptools` pinned to 59.6.0. `ros2_ws` built (~33 min). `.bashrc` updated with ROS2 source lines. `rosdep init` still pending (needs interactive terminal). See [[project-sdcard-setup]] for recovery steps.
+
 ## One-time setup (already done 2026-05-16)
 
 Setup was run safely over Ethernet SSH (not keyboard/monitor):

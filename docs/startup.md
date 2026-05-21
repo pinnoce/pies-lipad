@@ -4,6 +4,8 @@ Run these commands each time the Raspberry Pi boots.
 
 ## 1. Source the workspace
 
+New SSH sessions auto-source everything (`.bashrc` is configured). Only needed if you're in an existing shell that predates the setup:
+
 ```bash
 source ~/.bashrc
 ```
@@ -232,29 +234,9 @@ ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 90.0"
 
 ### Option A — RPi WiFi Hotspot ✅ confirmed working
 
-**One-time setup** (safe to run over Ethernet SSH — do this once, already done):
+**Already configured by `setup.sh`** — hotspot is created with `autoconnect yes` and starts on every boot. No manual steps needed on a fresh SD card.
 
-```bash
-sudo apt install -y network-manager
-sudo bash -c 'echo "network: {config: disabled}" > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg'
-sudo bash -c 'printf "network:\n  version: 2\n  renderer: NetworkManager\n" > /etc/netplan/99-nm.yaml'
-sudo chmod 600 /etc/netplan/99-nm.yaml
-sudo netplan apply
-sudo nmcli con add type wifi ifname wlan0 con-name pies-hotspot ssid "piesdrone" mode ap \
-  ipv4.method shared ipv4.addresses 172.16.0.1/24 \
-  wifi-sec.key-mgmt wpa-psk wifi-sec.psk "piesdrone123" autoconnect yes
-```
-
-> **Subnet note:** `172.16.0.x` is used deliberately — `10.42.0.x` is the Ethernet cable subnet
-> and `192.168.1.x` is typically the home router. Keeping all three separate avoids routing conflicts.
-
-**Update existing installation to autoconnect** (run this once — already created with `autoconnect no`):
-
-```bash
-sudo nmcli con modify pies-hotspot connection.autoconnect yes
-```
-
-The hotspot now starts automatically on every boot. At the field this means you just power on the RPi and `piesdrone` appears — no manual start needed. At home, NM keeps the existing home WiFi connection active and the hotspot stays dormant.
+The hotspot starts automatically on every boot. At the field this means you just power on the RPi and `piesdrone` appears — no manual start needed. At home, NM keeps the existing home WiFi connection active and the hotspot stays dormant.
 
 **At the field — connect:**
 

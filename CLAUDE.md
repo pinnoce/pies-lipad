@@ -9,11 +9,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Two major components:
 
 1. **Micro-XRCE-DDS-Agent** — a C++11 DDS-XRCE broker (eProsima) that bridges the Pixhawk (running Micro XRCE-DDS Client) to the ROS2 DDS network.
-2. **ros2_ws** — a ROS2 colcon workspace with four packages:
+2. **ros2_ws** — a ROS2 colcon workspace. Authored packages in `src/`:
    - `pies_servo` — servo/gripper control via lgpio PWM on GPIO 12
-   - `camera_ros` — OV5647 CSI camera, 800×600 at ~17 FPS
    - `pies_vision` — computer vision nodes (bucket_detector, green_x_detector, etc.)
    - `pies_mission` — full autonomous mission stack (see below)
+   - `px4_msgs` / `px4_ros_com` — PX4 ROS2 message definitions, cloned by `setup.sh`
+
+   `camera_ros` is installed as a system package (`ros-humble-camera-ros`), not in `src/`. OV5647 CSI camera, 800×600 at ~17 FPS.
 
 The full data path for autonomous package recovery:
 ```
@@ -50,10 +52,25 @@ ssh lipad@rpi
 git clone https://github.com/pinnoce/pies-lipad.git ~/pies-lipad
 cd ~/pies-lipad
 bash setup.sh   # ~30–45 min — run as lipad, NOT sudo
+sudo rosdep init && rosdep update   # rosdep init needs a real terminal; run once
 sudo reboot
 ```
 
-`setup.sh` handles everything: ROS2, all packages, camera config, UART config, ModemManager removal, serial getty disable, NetworkManager, hotspot (`piesdrone`), Ethernet static IP (`10.42.0.2`), rosdep, builds, `.bashrc`, and Claude memory symlink.
+`setup.sh` handles everything: ROS2, all packages, camera config, UART config, ModemManager removal, serial getty disable, NetworkManager, hotspot (`piesdrone`), Ethernet static IP (`10.42.0.2`), clones `px4_msgs`/`px4_ros_com`, builds, `.bashrc`, and Claude memory symlink.
+
+**If setup.sh fails partway:** the most likely gap is `px4_msgs` and `px4_ros_com` not being cloned. Check `ls ros2_ws/src/` — if they're missing, clone manually:
+```bash
+cd ~/pies-lipad/ros2_ws/src
+git clone https://github.com/PX4/px4_msgs.git
+git clone https://github.com/PX4/px4_ros_com.git
+cd ~/pies-lipad/ros2_ws
+source /opt/ros/humble/setup.bash && colcon build --symlink-install
+```
+Also verify `.bashrc` has the two source lines (added by setup.sh):
+```
+source /opt/ros/humble/setup.bash
+source ~/pies-lipad/ros2_ws/install/local_setup.bash
+```
 
 ## Serial Port (`/dev/serial0`)
 
@@ -109,6 +126,8 @@ The main mission package. All parameters live in one file — edit before each f
 
 ### Key files
 
+Paths relative to `ros2_ws/src/pies_mission/` unless noted otherwise.
+
 | File | Purpose |
 |------|---------|
 | `pies_mission/mission_config.py` | Single source of truth for all parameters |
@@ -117,9 +136,10 @@ The main mission package. All parameters live in one file — edit before each f
 | `pies_mission/calibrate_gains.py` | Sets KP_X/KP_Y signs via live nudge test — run once after mounting |
 | `launch/autonomous.launch.py` | Launches full autonomous stack |
 | `launch/mission.launch.py` | Launches visual-centering-only stack |
-| `tools/sim_mission.py` | Simulates the full mission state machine without hardware |
-| `tools/sim_calibrate.py` | Validates calibration sign logic for all camera mount angles |
-| `tools/test_statustext.py` | pymavlink UDP server that replays mission STATUSTEXT in QGC — use to preview Messages panel before flying |
+| `tools/sim_mission.py` *(repo root)* | Simulates the full mission state machine without hardware |
+| `tools/sim_calibrate.py` *(repo root)* | Validates calibration sign logic for all camera mount angles |
+| `tools/sim_centering.py` *(repo root)* | Simulates visual centering descent loop only |
+| `tools/test_statustext.py` *(repo root)* | pymavlink UDP server that replays mission STATUSTEXT in QGC — use to preview Messages panel before flying |
 
 ### Run autonomous mission
 

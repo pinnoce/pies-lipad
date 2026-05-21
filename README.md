@@ -108,6 +108,7 @@ ros2_ws/src/
 tools/
   sim_mission.py                # Simulate full mission without hardware
   sim_calibrate.py              # Validate calibration for all camera mount angles
+  sim_centering.py              # Simulate visual centering descent loop only
   test_statustext.py            # Preview mission STATUSTEXT in QGC via pymavlink UDP
   capture_frame.py              # Save one camera frame to captured_frame.jpg
 ```

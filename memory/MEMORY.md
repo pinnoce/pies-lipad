@@ -4,4 +4,5 @@
 - [Visual Centering Technical Details](project_visual_centering.md) — camera model, phi rotation, gain sign convention, key params, sim outputs, QGC STATUSTEXT, review-caught bugs
 - [Pre-flight Calibration Checklist](project_preflight.md) — servo bench test, CAM_OFFSET calibration, calibrate_gains, day-of GPS coords (none done yet as of 2026-05-15)
 - [Code Review Feedback](feedback_reviews.md) — user does multi-round reviews; each round expects fresh findings and immediate fixes
-- [RPi Connection Methods](project_connections.md) — WiFi/Ethernet/hotspot addresses, subnet layout, single-radio limitation, setup notes
+- [RPi Connection Methods](project_connections.md) — WiFi/Ethernet/hotspot addresses, subnet layout, single-radio limitation, setup notes; SD card history
+- [Fresh SD Card Setup / Recovery](project_sdcard_setup.md) — setup.sh failure modes, manual recovery steps, Python version pinning rationale
