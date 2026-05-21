@@ -15,7 +15,7 @@ Full competition details, geofence coordinates, missions, scoring, and build ord
 ## Software Status (as of 2026-05-20)
 - ✅ Micro-XRCE-DDS-Agent built and running (serial to Pixhawk)
 - ✅ ROS2 Humble installed, PX4 topics flowing
-- ✅ pies_servo ROS2 package — servo controlled via /servo/angle
+- ✅ pies_servo ROS2 package — servo controlled via /servo/angle; switched lgpio → pigpio (2026-05-20) to fix RPi reboots under load; requires pigpiod daemon
 - ✅ Camera node working — /camera/image_raw at ~16 FPS, 800×600 NV21 (ros-humble-camera-ros); CSI ribbon cable confirmed seated 2026-05-18
 - ✅ Geofence — handled by PX4/QGroundControl natively, no custom code needed
 - ✅ tools/capture_frame.py — saves one JPEG from the camera for testing

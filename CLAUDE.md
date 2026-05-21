@@ -10,7 +10,7 @@ Two major components:
 
 1. **Micro-XRCE-DDS-Agent** — a C++11 DDS-XRCE broker (eProsima) that bridges the Pixhawk (running Micro XRCE-DDS Client) to the ROS2 DDS network.
 2. **ros2_ws** — a ROS2 colcon workspace. Authored packages in `src/`:
-   - `pies_servo` — servo/gripper control via lgpio PWM on GPIO 12
+   - `pies_servo` — servo/gripper control via pigpio (pigpiod daemon) on GPIO 12
    - `pies_vision` — computer vision nodes (bucket_detector, green_x_detector, etc.)
    - `pies_mission` — full autonomous mission stack (see below)
    - `px4_msgs` / `px4_ros_com` — PX4 ROS2 message definitions, cloned by `setup.sh`
@@ -112,9 +112,9 @@ colcon test-result --verbose
 
 `pies_servo` has three layers:
 
-- **`servo_driver.py`** — raw hardware: opens `/dev/gpiochip0` via `lgpio`, maps 0–270° to 500–2500 µs pulse width on GPIO pin 12.
+- **`servo_driver.py`** — raw hardware: connects to the `pigpiod` daemon via `pigpio`, maps 0–270° to 500–2500 µs pulse width on GPIO pin 12. Requires `pigpiod` running (`sudo systemctl enable --now pigpiod`).
 - **`servo_node.py`** — ROS2 node `servo_node`; subscribes to `/servo/angle` (`std_msgs/Float32`) and calls into `user_main`.
-- **`user_main.py`** — the intended customisation point. Instantiates `ServoDriver` on GPIO 12, moves the servo on each command, and auto-releases the PWM signal 0.5 s later (prevents jitter while holding position).
+- **`user_main.py`** — the intended customisation point. Instantiates `ServoDriver` on GPIO 12, moves the servo on each command, and auto-releases the PWM signal after a scaled delay (0.2–0.8 s based on move distance) to prevent jitter while holding position.
 
 `user_main.py` is the file to edit when changing servo behaviour (pin, timing, motion profiles). `servo_driver.py` is pure hardware abstraction.
 

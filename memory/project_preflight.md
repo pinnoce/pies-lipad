@@ -16,6 +16,7 @@ Steps that must be completed before the first competition flight.
 ## One-time after hardware mounting (bench, before field)
 
 1. **Servo bench test** — direction confirmed 2026-05-16: 0° = CCW = closes gripper; 270° = CW = opens gripper. Defaults (GRAB=30°, RELEASE=240°) are in the correct direction.
+   **Prerequisite:** `pigpiod` must be running — `sudo systemctl enable --now pigpiod` (should be persistent after this; verify with `systemctl is-active pigpiod`).
    **Remaining:** rack-and-pinion mechanism not yet attached to servo. Once mounted, sweep in 10° steps to find the mechanical stops on each end. Set `GRAB_ANGLE` = closed limit + 10° and `RELEASE_ANGLE` = open limit − 10° in `mission_config.py`. Stop immediately if you hear grinding.
 
 2. **Camera check** — confirmed working 2026-05-18 after reseating CSI ribbon cable. Before each field session: verify `dmesg | grep -i ov5647` shows the driver loaded. If "no cameras available", reseat the ribbon cable (both ends — RPi CAM port and camera module).

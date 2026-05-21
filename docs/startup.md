@@ -22,6 +22,14 @@ Leave this terminal open. Open a new terminal for everything below.
 
 ## 3. Start the servo node
 
+The servo driver uses `pigpiod`. Verify it's running first:
+
+```bash
+systemctl is-active pigpiod || sudo systemctl enable --now pigpiod
+```
+
+Then start the node:
+
 ```bash
 ros2 run pies_servo servo_node
 ```
@@ -220,7 +228,8 @@ ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 90.0"
 - The agent must be running before PX4 topics appear in `ros2 topic list`.
 - The Pixhawk serial port is `/dev/serial0` at 921600 baud (TELEM2).
 - Servo is on GPIO 12, range 0–270°.
-- If the servo node fails with **permission denied**, the user isn't in the `dialout` group yet — run `sudo usermod -aG dialout $USER` and reboot.
+- If the servo node fails with **`pigpiod is not running`**, run `sudo systemctl enable --now pigpiod` and retry.
+- The `dialout` group is still needed for the DDS serial port (`/dev/serial0`), not for the servo. If DDS fails with permission denied: `sudo usermod -aG dialout $USER` and reboot.
 - If the DDS agent starts but no `/fmu/` topics appear, check for serial port conflicts:
   ```bash
   systemctl status serial-getty@ttyAMA0.service   # should be inactive/disabled

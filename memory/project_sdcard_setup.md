@@ -27,6 +27,9 @@ ls ~/pies-lipad/ros2_ws/install/
 # .bashrc has source lines?
 grep -c 'ros/humble\|local_setup' ~/.bashrc   # should print 2
 
+# pigpiod installed and enabled?
+systemctl is-enabled pigpiod   # should print "enabled"
+
 # Claude memory symlinked (not a real dir)?
 ls -la ~/.claude/projects/-home-lipad-pies-lipad/memory
 ```
@@ -55,7 +58,11 @@ grep -qF 'local_setup' ~/.bashrc || echo 'source ~/pies-lipad/ros2_ws/install/lo
 MDIR=~/.claude/projects/-home-lipad-pies-lipad/memory
 [ -d "$MDIR" ] && rmdir "$MDIR" && ln -s ~/pies-lipad/memory "$MDIR"
 
-# 6. rosdep init (needs interactive terminal — run manually)
+# 6. Install and enable pigpiod (servo driver dependency)
+sudo apt install -y pigpio
+sudo systemctl enable --now pigpiod
+
+# 7. rosdep init (needs interactive terminal — run manually)
 sudo rosdep init && rosdep update
 ```
 
