@@ -13,7 +13,7 @@ Two major components:
    - `pies_servo` — servo/gripper control via pigpio (pigpiod daemon) on GPIO 12
    - `pies_vision` — computer vision nodes (bucket_detector, green_x_detector, etc.)
    - `pies_mission` — full autonomous mission stack (see below)
-   - `px4_msgs` / `px4_ros_com` — PX4 ROS2 message definitions, cloned by `setup.sh`
+   - `px4_msgs` / `px4_ros_com` — PX4 ROS2 message definitions, cloned during setup
 
    `camera_ros` is installed as a system package (`ros-humble-camera-ros`), not in `src/`. OV5647 CSI camera, 800×600 at ~17 FPS.
 
@@ -50,15 +50,11 @@ Flash **Ubuntu Server 22.04 LTS (64-bit)** with Raspberry Pi Imager. Click the g
 ```bash
 ssh lipad@rpi
 git clone https://github.com/pinnoce/pies-lipad.git ~/pies-lipad
-cd ~/pies-lipad
-bash setup.sh   # ~30–45 min — run as lipad, NOT sudo
-sudo rosdep init && rosdep update   # rosdep init needs a real terminal; run once
-sudo reboot
 ```
 
-`setup.sh` handles everything: ROS2, all packages, camera config, UART config, ModemManager removal, serial getty disable, NetworkManager, hotspot (`piesdrone`), Ethernet static IP (`10.42.0.2`), clones `px4_msgs`/`px4_ros_com`, builds, `.bashrc`, and Claude memory symlink.
+Then follow the step-by-step procedure in **[docs/startup.md — Fresh SD Card Setup](docs/startup.md#fresh-sd-card-setup)** (~30–45 min). Covers ROS2, all packages, boot config, NetworkManager, hotspot, Ethernet static IP, building everything, `.bashrc`, and Claude memory symlink.
 
-**If setup.sh fails partway:** the most likely gap is `px4_msgs` and `px4_ros_com` not being cloned. Check `ls ros2_ws/src/` — if they're missing, clone manually:
+**Most common gap if something fails mid-install:** `px4_msgs` and `px4_ros_com` not cloned. Check `ls ros2_ws/src/` — if missing:
 ```bash
 cd ~/pies-lipad/ros2_ws/src
 git clone https://github.com/PX4/px4_msgs.git
@@ -66,7 +62,7 @@ git clone https://github.com/PX4/px4_ros_com.git
 cd ~/pies-lipad/ros2_ws
 source /opt/ros/humble/setup.bash && colcon build --symlink-install
 ```
-Also verify `.bashrc` has the two source lines (added by setup.sh):
+Also verify `.bashrc` has these two lines:
 ```
 source /opt/ros/humble/setup.bash
 source ~/pies-lipad/ros2_ws/install/local_setup.bash
@@ -76,8 +72,8 @@ source ~/pies-lipad/ros2_ws/install/local_setup.bash
 
 Pixhawk connects via TELEM2 → `/dev/serial0` (= `/dev/ttyAMA0`) at 921600 baud. Two things that silently break this if present:
 
-- **ModemManager** — probes serial ports on attach, sends AT commands to the Pixhawk. `setup.sh` removes it.
-- **serial-getty** — Ubuntu may run a login shell on `ttyAMA0`. `setup.sh` disables `serial-getty@ttyAMA0` and `serial-getty@ttyS0`.
+- **ModemManager** — probes serial ports on attach, sends AT commands to the Pixhawk. Removed during fresh install.
+- **serial-getty** — Ubuntu may run a login shell on `ttyAMA0`. Disabled (`serial-getty@ttyAMA0` and `serial-getty@ttyS0`) during fresh install.
 
 If the DDS agent connects but no `/fmu/` topics appear, check: `systemctl status serial-getty@ttyAMA0` and `which ModemManager`.
 
@@ -218,7 +214,7 @@ Expected: `sim_calibrate` shows 0°/90°/180°/270° converging in ~2.7 s; diago
 
 ### Build Commands
 
-The project uses a superbuild CMake pattern that downloads and compiles all dependencies (Fast-CDR, Fast-DDS, foonathan_memory, spdlog, Micro XRCE-DDS Client) as ExternalProjects into `build/temp_install/`. The source is cloned by `setup.sh`; `build/` is gitignored.
+The project uses a superbuild CMake pattern that downloads and compiles all dependencies (Fast-CDR, Fast-DDS, foonathan_memory, spdlog, Micro XRCE-DDS Client) as ExternalProjects into `build/temp_install/`. The source is cloned during setup (step 8 in [docs/startup.md](docs/startup.md#fresh-sd-card-setup)); `build/` is gitignored.
 
 **First-time build:**
 ```bash

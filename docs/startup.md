@@ -235,7 +235,7 @@ ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 90.0"
   systemctl status serial-getty@ttyAMA0.service   # should be inactive/disabled
   which ModemManager                               # should print nothing
   ```
-  Both are disabled/removed by `setup.sh`. If present: `sudo systemctl disable serial-getty@ttyAMA0 && sudo apt remove modemmanager`.
+  Both are disabled during fresh install. If present: `sudo systemctl disable serial-getty@ttyAMA0 && sudo apt remove modemmanager`.
 
 ---
 
@@ -243,7 +243,7 @@ ros2 topic pub --once /servo/angle std_msgs/msg/Float32 "data: 90.0"
 
 ### Option A — RPi WiFi Hotspot ✅ confirmed working
 
-**Already configured by `setup.sh`** — hotspot is created with `autoconnect yes` and starts on every boot. No manual steps needed on a fresh SD card.
+**Already configured on a fresh install** (step 7 in [Fresh SD Card Setup](#fresh-sd-card-setup) below) — hotspot is created with `autoconnect yes` and starts on every boot. No manual steps needed on a fresh SD card.
 
 The hotspot starts automatically on every boot. At the field this means you just power on the RPi and `piesdrone` appears — no manual start needed. At home, NM keeps the existing home WiFi connection active and the hotspot stays dormant.
 
@@ -401,3 +401,175 @@ To re-open gripper before an unplanned landing:
 ```bash
 ros2 topic pub --once /gripper/open std_msgs/msg/Empty "{}"
 ```
+
+---
+
+## Fresh SD Card Setup
+
+Step-by-step manual procedure for a new SD card. Takes ~30–45 min. Run as `lipad`, not `sudo` (except where shown).
+
+### Step 0 — Flash and clone
+
+Flash **Ubuntu Server 22.04 LTS (64-bit)** with Raspberry Pi Imager. Click ⚙ and set: hostname `rpi`, username `lipad`, WiFi credentials, enable SSH. Boot, then:
+
+```bash
+ssh lipad@rpi
+git clone https://github.com/pinnoce/pies-lipad.git ~/pies-lipad
+```
+
+### Step 1 — Install ROS2 Humble
+
+```bash
+sudo apt update && sudo apt install -y locales
+sudo locale-gen en_US en_US.UTF-8
+sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+export LANG=en_US.UTF-8
+sudo apt install -y software-properties-common curl
+sudo add-apt-repository universe -y
+sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
+    -o /usr/share/keyrings/ros-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] \
+    http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" \
+    | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y ros-humble-desktop ros-dev-tools
+```
+
+### Step 2 — Install system packages
+
+```bash
+sudo apt update
+sudo apt install -y \
+    git build-essential cmake python3-pip ros-dev-tools \
+    pigpio python3-pigpio \
+    ros-humble-camera-ros ros-humble-cv-bridge \
+    python3-opencv v4l-utils libcamera-tools \
+    network-manager tesseract-ocr
+
+# ModemManager sends AT commands to serial ports — kills Pixhawk comms
+sudo apt remove -y modemmanager 2>/dev/null || true
+
+# dialout: /dev/serial0 (Pixhawk)   video: /dev/video* (camera)
+sudo usermod -aG dialout "$USER"
+sudo usermod -aG video "$USER"
+```
+
+### Step 3 — Install Python dependencies
+
+Pinned versions are required for ROS2 Humble compatibility:
+
+```bash
+python3 -m pip install --user \
+    "numpy<2" \
+    "setuptools==59.6.0" \
+    "empy==3.3.4" \
+    pyros-genmsg pymavlink pytesseract
+```
+
+### Step 4 — Configure boot
+
+```bash
+# Append to /boot/firmware/config.txt — check it isn't already there first
+grep -q "camera_auto_detect=1" /boot/firmware/config.txt || \
+    printf "\ncamera_auto_detect=1\ngpu_mem=128\nenable_uart=1\ndtoverlay=disable-bt\n" \
+    | sudo tee -a /boot/firmware/config.txt > /dev/null
+```
+
+`enable_uart=1` enables `/dev/serial0` for Pixhawk. `dtoverlay=disable-bt` frees the primary UART by disabling Bluetooth (wlan0 is unaffected).
+
+### Step 5 — Disable serial console
+
+```bash
+sudo systemctl stop    serial-getty@ttyAMA0.service
+sudo systemctl disable serial-getty@ttyAMA0.service
+sudo systemctl stop    serial-getty@ttyS0.service
+sudo systemctl disable serial-getty@ttyS0.service
+```
+
+### Step 6 — Enable pigpiod
+
+```bash
+sudo systemctl enable --now pigpiod
+```
+
+### Step 7 — NetworkManager + hotspot + Ethernet
+
+> Run this over Ethernet SSH if possible. Over WiFi SSH, `netplan apply` may briefly drop the connection while NetworkManager takes over.
+
+```bash
+# Disable cloud-init network management (conflicts with NM)
+sudo bash -c 'echo "network: {config: disabled}" > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg'
+
+# Switch netplan renderer to NetworkManager
+sudo bash -c 'printf "network:\n  version: 2\n  renderer: NetworkManager\n" > /etc/netplan/99-nm.yaml'
+sudo chmod 600 /etc/netplan/99-nm.yaml
+sudo netplan apply
+sleep 3  # let NM take over before running nmcli
+
+# Ethernet static IP — direct cable to laptop (10.42.0.1 ↔ 10.42.0.2)
+sudo bash -c 'cat > /etc/netplan/99-eth0-static.yaml << EOF
+network:
+  version: 2
+  ethernets:
+    eth0:
+      addresses: [10.42.0.2/24]
+      dhcp4: false
+EOF'
+sudo chmod 600 /etc/netplan/99-eth0-static.yaml
+sudo netplan apply
+
+# WiFi hotspot — autoconnect yes means it starts automatically on every boot
+sudo nmcli con add type wifi ifname wlan0 con-name pies-hotspot ssid "piesdrone" mode ap \
+    ipv4.method shared ipv4.addresses 172.16.0.1/24 \
+    wifi-sec.key-mgmt wpa-psk wifi-sec.psk "piesdrone123" autoconnect yes
+```
+
+### Step 8 — Clone dependencies and build
+
+```bash
+# Micro-XRCE-DDS-Agent
+git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git ~/pies-lipad/Micro-XRCE-DDS-Agent
+cmake -S ~/pies-lipad/Micro-XRCE-DDS-Agent \
+      -B ~/pies-lipad/Micro-XRCE-DDS-Agent/build \
+      -DCMAKE_BUILD_TYPE=Release
+cmake --build ~/pies-lipad/Micro-XRCE-DDS-Agent/build --target MicroXRCEAgent -- -j$(nproc)
+
+# PX4 ROS2 packages
+cd ~/pies-lipad/ros2_ws/src
+git clone https://github.com/PX4/px4_msgs.git
+git clone https://github.com/PX4/px4_ros_com.git
+
+# rosdep — init requires a real interactive terminal (not sudo)
+source /opt/ros/humble/setup.bash
+sudo rosdep init
+rosdep update
+rosdep install --from-paths ~/pies-lipad/ros2_ws/src --ignore-src -r -y
+
+# Build ROS2 workspace
+cd ~/pies-lipad/ros2_ws
+colcon build --symlink-install
+```
+
+### Step 9 — Configure .bashrc
+
+```bash
+echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+echo "source ~/pies-lipad/ros2_ws/install/local_setup.bash" >> ~/.bashrc
+```
+
+### Step 10 — Claude Code memory symlink
+
+Keeps Claude's project memory in the repo so it survives SD card swaps:
+
+```bash
+mkdir -p ~/.claude/projects/-home-lipad-pies-lipad
+ln -s ~/pies-lipad/memory ~/.claude/projects/-home-lipad-pies-lipad/memory
+```
+
+### Step 11 — Reboot
+
+```bash
+sudo reboot
+```
+
+Group memberships (dialout, video) and the UART/BT overlay only take effect after reboot.

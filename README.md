@@ -28,14 +28,12 @@ Built on a Raspberry Pi 4 companion computer running Ubuntu 22.04, connected to 
 ssh lipad@rpi
 ```
 
-**3. Clone and run setup** (~30–45 min):
+**3. Clone the repo and follow the setup steps** in [docs/startup.md — Fresh SD Card Setup](docs/startup.md#fresh-sd-card-setup) (~30–45 min):
 ```bash
 git clone https://github.com/pinnoce/pies-lipad.git ~/pies-lipad
-cd ~/pies-lipad
-bash setup.sh
 ```
 
-`setup.sh` installs ROS2 Humble, all dependencies, builds Micro-XRCE-DDS-Agent and the ROS2 workspace, configures NetworkManager, creates the field hotspot, and links Claude Code memory.
+Covers ROS2 Humble, all dependencies, boot config, NetworkManager, hotspot, Ethernet IP, building everything, `.bashrc`, and Claude Code memory.
 
 **4. Reboot:**
 ```bash
@@ -85,7 +83,6 @@ ros2 topic pub --once /mission/go std_msgs/msg/Empty "{}"
 ## Repo Structure
 
 ```
-setup.sh                        # One-shot bootstrap for a fresh RPi
 docs/
   competition.md                # C-UASC rules, missions, scoring
   startup.md                    # Daily startup + calibration sequence
@@ -93,7 +90,7 @@ ros2_ws/src/
   pies_servo/                   # Servo/gripper ROS2 package
     pies_servo/
       user_main.py              # ← edit to change servo behaviour
-      servo_driver.py           # lgpio hardware abstraction
+      servo_driver.py           # pigpio hardware abstraction
       servo_node.py             # ROS2 boilerplate
   pies_vision/                  # Computer vision nodes
   pies_mission/                 # Autonomous mission stack
@@ -113,7 +110,7 @@ tools/
   capture_frame.py              # Save one camera frame to captured_frame.jpg
 ```
 
-Third-party repos (`Micro-XRCE-DDS-Agent`, `px4_msgs`, `px4_ros_com`) are gitignored and cloned automatically by `setup.sh`.
+Third-party repos (`Micro-XRCE-DDS-Agent`, `px4_msgs`, `px4_ros_com`) are gitignored and cloned during fresh install (step 8 in [docs/startup.md](docs/startup.md#fresh-sd-card-setup)).
 
 ## Key Commands
 

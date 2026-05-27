@@ -1,18 +1,20 @@
 ---
 name: project-sdcard-setup
-description: Known failure modes of setup.sh and manual recovery steps for fresh SD card installs
+description: Fresh SD card install verification checklist and recovery steps for incomplete installs
 metadata:
   type: project
   originSessionId: 98654d98-cc2b-4d1c-9a47-e594bc788121
 ---
 
-`setup.sh` has been brittle in practice — it ran to completion on the first SD card but failed partway on the second (2026-05-20). When it fails, nothing is reported cleanly; the symptom is just that subsequent steps didn't happen.
+Fresh installs are done manually following [docs/startup.md — Fresh SD Card Setup](../docs/startup.md#fresh-sd-card-setup). The procedure is long and network-dependent; partial failures (apt error, network hiccup) leave the system in an unclear state.
 
-**Why:** setup.sh is a long sequential script with `set -e`; any network hiccup or apt error causes a silent abort mid-run.
+**History:** setup.sh was removed 2026-05-27 — it was brittle in practice (failed partway on second SD card, 2026-05-20). Steps are now documented manually in startup.md.
 
-**How to apply:** After running setup.sh, verify the key outputs manually before rebooting. If anything is missing, follow the recovery steps below.
+**Why:** Long sequential installs can fail silently mid-way. Always verify key outputs before rebooting.
 
-## Verification checklist after setup.sh
+**How to apply:** After running the fresh install steps, verify the checklist below before rebooting. If anything is missing, run the recovery commands.
+
+## Verification checklist after install
 
 ```bash
 # ROS2 installed?
@@ -34,7 +36,7 @@ systemctl is-enabled pigpiod   # should print "enabled"
 ls -la ~/.claude/projects/-home-lipad-pies-lipad/memory
 ```
 
-## Manual recovery if setup.sh failed partway
+## Recovery if install failed partway
 
 ```bash
 # 1. Clone missing PX4 packages
